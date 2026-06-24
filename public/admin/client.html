@@ -124,10 +124,17 @@ function render() {
   `;
 
   if (r > 0) {
+    const today = new Date().toISOString().split('T')[0];
     html += `
       <div class="mt-16">
-        <button class="btn btn-green" id="completeBtn" onclick="completeSession()">セッション完了</button>
-        <div class="text-sm text-muted text-center mt-8">タップで残回数が-1され、今日の日付が記録されます</div>
+        <div class="card card-body">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">セッション実施日</label>
+            <input type="date" id="sessionDate" class="form-input" value="${today}">
+          </div>
+          <button class="btn btn-green" id="completeBtn" onclick="completeSession()">セッション完了</button>
+          <div class="text-sm text-muted text-center mt-8">日付を選んでタップすると残回数が-1されます</div>
+        </div>
       </div>
     `;
   }
@@ -176,7 +183,8 @@ async function completeSession() {
   btn.disabled = true;
   btn.textContent = '処理中...';
 
-  const today = new Date().toISOString().split('T')[0].replace(/-/g, '.');
+  const dateInput = document.getElementById('sessionDate').value;
+  const today = dateInput ? dateInput.replace(/-/g, '.') : new Date().toISOString().split('T')[0].replace(/-/g, '.');
 
   await fetch(API + '/sessions', {
     method: 'POST',
