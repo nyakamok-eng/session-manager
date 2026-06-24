@@ -162,6 +162,7 @@ async function handleClients(url, request, method, env) {
     if (body.plan !== undefined) data.plan = body.plan;
     if (body.totalSessions !== undefined) data.totalSessions = parseInt(body.totalSessions);
     if (body.price !== undefined) data.price = parseInt(body.price);
+    if (body.sheetUrl !== undefined) data.sheetUrl = body.sheetUrl;
 
     await env.SESSION_KV.put("client:" + body.id, JSON.stringify(data));
 

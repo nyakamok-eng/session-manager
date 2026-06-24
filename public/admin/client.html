@@ -121,6 +121,27 @@ function render() {
         <div class="text-sm text-muted mt-8">このURLをLINEでクライアントに共有してください。ログイン不要で残回数・履歴・資料を確認できます。</div>
       </div>
     </div>
+
+    <div class="card mt-12">
+      <div class="card-header flex justify-between items-center">
+        <span>共有資料</span>
+        <button class="header-action" onclick="toggleSheetEdit()">設定</button>
+      </div>
+      <div class="card-body">
+        ${client.sheetUrl
+          ? '<a href="' + esc(client.sheetUrl) + '" target="_blank" style="color:var(--primary); font-size:13px; word-break:break-all;">' + esc(client.sheetUrl) + '</a>'
+          : '<div class="text-sm text-muted">未設定</div>'
+        }
+        <div id="sheetEditArea" style="display:none; margin-top:12px;">
+          <input type="url" id="sheetUrlInput" class="form-input" placeholder="https://docs.google.com/spreadsheets/d/..." value="${esc(client.sheetUrl || '')}">
+          <div class="flex gap-8 mt-8">
+            <button class="btn btn-outline" style="flex:1;" onclick="toggleSheetEdit()">キャンセル</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="saveSheetUrl()">保存</button>
+          </div>
+        </div>
+        <div class="text-sm text-muted mt-8">スプレッドシートのURLを設定すると、クライアントのマイページに表示されます。</div>
+      </div>
+    </div>
   `;
 
   if (r > 0) {
@@ -253,6 +274,22 @@ async function saveEdit() {
   });
   closeEdit();
   showToast('保存しました');
+  await load();
+}
+
+function toggleSheetEdit() {
+  const area = document.getElementById('sheetEditArea');
+  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+async function saveSheetUrl() {
+  const url = document.getElementById('sheetUrlInput').value.trim();
+  await fetch(API + '/clients', {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ id: client.id, sheetUrl: url })
+  });
+  showToast('資料URLを保存しました');
   await load();
 }
 
