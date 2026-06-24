@@ -30,6 +30,23 @@
   </div>
 
   <div class="card mt-16">
+    <div class="card-header">音声配信リンク（全クライアント共通）</div>
+    <div class="card-body">
+      <p class="text-sm text-muted mb-8">Notionの音声配信ページのURLを設定すると、全クライアントのマイページに表示されます。</p>
+      <div class="form-group">
+        <label class="form-label">リンクURL</label>
+        <input type="url" id="audioUrl" class="form-input" placeholder="https://notion.so/...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">表示タイトル（任意）</label>
+        <input type="text" id="audioTitle" class="form-input" placeholder="音声配信" value="音声配信">
+      </div>
+      <button class="btn btn-primary" onclick="saveAudioLink()">保存</button>
+      <div id="audioStatus" class="text-sm text-muted mt-8"></div>
+    </div>
+  </div>
+
+  <div class="card mt-16">
     <div class="card-header">Excelインポート</div>
     <div class="card-body">
       <p class="text-sm text-muted mb-8">既存の「セッション購入管理表.xlsx」からクライアントデータを一括インポートできます。</p>
@@ -52,6 +69,31 @@ if (!TOKEN) location.href = '/admin/';
 
 function headers() {
   return { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+}
+
+loadAudioLink();
+
+async function loadAudioLink() {
+  try {
+    const res = await fetch(API + '/settings?key=audioLink', { headers: headers() });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.url) document.getElementById('audioUrl').value = data.url;
+      if (data.title) document.getElementById('audioTitle').value = data.title;
+    }
+  } catch (e) {}
+}
+
+async function saveAudioLink() {
+  const url = document.getElementById('audioUrl').value.trim();
+  const title = document.getElementById('audioTitle').value.trim() || '音声配信';
+  await fetch(API + '/settings', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ key: 'audioLink', value: { url, title } })
+  });
+  document.getElementById('audioStatus').textContent = '保存しました';
+  setTimeout(() => document.getElementById('audioStatus').textContent = '', 2000);
 }
 
 async function changePw() {

@@ -35,6 +35,8 @@ async function handleAPI(url, request, env) {
       res = await handleClients(url, request, method, env);
     } else if (path === "/api/sessions") {
       res = await handleSessions(url, request, method, env);
+    } else if (path === "/api/settings") {
+      res = await handleSettings(url, request, method, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -229,6 +231,27 @@ async function handleSessions(url, request, method, env) {
 
     await env.SESSION_KV.put("client:" + clientId, JSON.stringify(data));
     return Response.json(data);
+  }
+
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
+}
+
+async function handleSettings(url, request, method, env) {
+  if (method === "GET") {
+    const key = url.searchParams.get("key");
+    if (!key) return Response.json({ error: "key_required" }, { status: 400 });
+    const data = await env.SESSION_KV.get("settings:" + key, "json");
+    return Response.json(data || {});
+  }
+
+  if (method === "POST") {
+    if (!(await verifyAdmin(request, env))) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const { key, value } = await request.json();
+    if (!key) return Response.json({ error: "key_required" }, { status: 400 });
+    await env.SESSION_KV.put("settings:" + key, JSON.stringify(value));
+    return Response.json({ ok: true });
   }
 
   return Response.json({ error: "method_not_allowed" }, { status: 405 });

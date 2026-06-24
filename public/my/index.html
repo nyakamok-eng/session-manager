@@ -95,7 +95,9 @@ async function loadMyPage() {
       return;
     }
     const client = await res.json();
-    render(client);
+    const audioRes = await fetch(API + '/settings?key=audioLink');
+    const audioLink = audioRes.ok ? await audioRes.json() : {};
+    render(client, audioLink);
   } catch (e) {
     document.getElementById('content').innerHTML = '<div class="loading">接続エラー。再読み込みしてください。</div>';
   }
@@ -107,7 +109,7 @@ function esc(s) {
   return d.innerHTML;
 }
 
-function render(c) {
+function render(c, audioLink) {
   const r = c.totalSessions - c.sessions.length;
   const done = c.sessions.length;
   const pct = c.totalSessions > 0 ? Math.round((done / c.totalSessions) * 100) : 0;
@@ -127,6 +129,16 @@ function render(c) {
 
     <div style="padding: 0 4px;">
   `;
+
+  if (audioLink && audioLink.url) {
+    html += `
+      <a href="${esc(audioLink.url)}" target="_blank" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
+        <div style="font-size:24px; margin-bottom:6px;">&#127911;</div>
+        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">${esc(audioLink.title || '音声配信')}</div>
+        <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
+      </a>
+    `;
+  }
 
   if (c.sheetUrl) {
     html += `
