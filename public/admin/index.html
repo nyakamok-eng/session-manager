@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理者ログイン</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <div style="padding-top: 80px; text-align: center;">
+    <h1 style="font-size: 22px; margin-bottom: 8px;">Session Manager</h1>
+    <p class="text-sm text-muted" style="margin-bottom: 40px;">管理者ログイン</p>
+
+    <div style="max-width: 320px; margin: 0 auto;">
+      <div class="form-group">
+        <input type="password" id="password" class="form-input" placeholder="パスワードを入力" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" id="loginBtn" onclick="login()">ログイン</button>
+      <p id="error" style="color: var(--red); font-size: 13px; margin-top: 12px; display: none;">パスワードが正しくありません</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+
+document.getElementById('password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') login();
+});
+
+async function login() {
+  const pw = document.getElementById('password').value;
+  if (!pw) return;
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  try {
+    const res = await fetch(API + '/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+
+    if (!res.ok) {
+      document.getElementById('error').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'ログイン';
+      return;
+    }
+
+    const data = await res.json();
+    localStorage.setItem('admin_token', data.token);
+
+    if (data.firstLogin) {
+      location.href = '/admin/settings.html';
+    } else {
+      location.href = '/admin/clients.html';
+    }
+  } catch (e) {
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').textContent = '接続エラー';
+    btn.disabled = false;
+    btn.textContent = 'ログイン';
+  }
+}
+</script>
+</body>
+</html>

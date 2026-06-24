@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クライアント一覧</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>クライアント管理</h1>
+    <button class="header-action" onclick="logout()">ログアウト</button>
+  </div>
+
+  <div id="stats" style="display:none;" class="flex gap-8 mb-8">
+    <div class="card" style="flex:1; text-align:center;">
+      <div class="card-body" style="padding:10px;">
+        <div style="font-size:22px; font-weight:700; color:var(--primary);" id="totalCount">0</div>
+        <div class="text-sm text-muted">総クライアント</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1; text-align:center;">
+      <div class="card-body" style="padding:10px;">
+        <div style="font-size:22px; font-weight:700; color:var(--green);" id="activeCount">0</div>
+        <div class="text-sm text-muted">進行中</div>
+      </div>
+    </div>
+    <div class="card" style="flex:1; text-align:center;">
+      <div class="card-body" style="padding:10px;">
+        <div style="font-size:22px; font-weight:700; color:var(--gray-400);" id="doneCount">0</div>
+        <div class="text-sm text-muted">完了</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <input type="text" id="search" class="form-input" placeholder="名前で検索..." oninput="filterClients()">
+  </div>
+
+  <div id="clientList" class="card">
+    <div class="loading">読み込み中...</div>
+  </div>
+
+  <div class="mt-16">
+    <button class="btn btn-primary" onclick="openAddModal()">+ クライアントを追加</button>
+  </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h2>クライアント追加</h2>
+    <div class="form-group">
+      <label class="form-label">名前</label>
+      <input type="text" id="newName" class="form-input" placeholder="わだちゃん">
+    </div>
+    <div class="form-group">
+      <label class="form-label">プラン</label>
+      <select id="newPlan" class="form-input">
+        <option value="トライアル">トライアル</option>
+        <option value="無料セッション">無料セッション</option>
+        <option value="3か月">3か月</option>
+        <option value="F通常">F通常</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">総セッション回数</label>
+      <input type="number" id="newTotal" class="form-input" placeholder="6" min="1">
+    </div>
+    <div class="form-group">
+      <label class="form-label">金額（円）</label>
+      <input type="number" id="newPrice" class="form-input" placeholder="22000">
+    </div>
+    <div class="flex gap-8 mt-20">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeAddModal()">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1;" id="addBtn" onclick="addClient()">追加</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const TOKEN = localStorage.getItem('admin_token');
+let allClients = [];
+
+if (!TOKEN) location.href = '/admin/';
+
+function headers() {
+  return {
+    'Authorization': 'Bearer ' + TOKEN,
+    'Content-Type': 'application/json'
+  };
+}
+
+async function loadClients() {
+  try {
+    const res = await fetch(API + '/clients', { headers: headers() });
+    if (res.status === 401) { location.href = '/admin/'; return; }
+    allClients = await res.json();
+    renderClients(allClients);
+    updateStats(allClients);
+  } catch (e) {
+    document.getElementById('clientList').innerHTML = '<div class="card-body text-muted">接続エラー</div>';
+  }
+}
+
+function updateStats(clients) {
+  const el = document.getElementById('stats');
+  el.style.display = 'flex';
+  document.getElementById('totalCount').textContent = clients.length;
+  const active = clients.filter(c => remaining(c) > 0).length;
+  document.getElementById('activeCount').textContent = active;
+  document.getElementById('doneCount').textContent = clients.length - active;
+}
+
+function remaining(c) {
+  return c.totalSessions - c.sessions.length;
+}
+
+function badgeHTML(c) {
+  const r = remaining(c);
+  if (r <= 0) return '<span class="badge badge-done">完了</span>';
+  if (r <= 1) return '<span class="badge badge-warn">残' + r + '回</span>';
+  return '<span class="badge badge-active">残' + r + '回</span>';
+}
+
+function renderClients(clients) {
+  const el = document.getElementById('clientList');
+  if (clients.length === 0) {
+    el.innerHTML = '<div class="card-body text-muted text-center">クライアントがまだいません</div>';
+    return;
+  }
+
+  el.innerHTML = clients.map(c => `
+    <div class="client-item" onclick="location.href='/admin/client.html?id=${c.id}'">
+      <div>
+        <div class="client-name">${esc(c.name)}</div>
+        <div class="client-plan">${esc(c.plan)} ${c.totalSessions}回 / &yen;${c.price.toLocaleString()}</div>
+      </div>
+      <div>${badgeHTML(c)}</div>
+    </div>
+  `).join('');
+}
+
+function filterClients() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = allClients.filter(c => c.name.toLowerCase().includes(q));
+  renderClients(filtered);
+}
+
+function openAddModal() { document.getElementById('addModal').classList.add('active'); }
+function closeAddModal() { document.getElementById('addModal').classList.remove('active'); }
+
+async function addClient() {
+  const name = document.getElementById('newName').value.trim();
+  const plan = document.getElementById('newPlan').value;
+  const totalSessions = document.getElementById('newTotal').value;
+  const price = document.getElementById('newPrice').value;
+
+  if (!name || !totalSessions) return;
+
+  const btn = document.getElementById('addBtn');
+  btn.disabled = true;
+
+  await fetch(API + '/clients', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ name, plan, totalSessions, price })
+  });
+
+  closeAddModal();
+  document.getElementById('newName').value = '';
+  document.getElementById('newTotal').value = '';
+  document.getElementById('newPrice').value = '';
+  btn.disabled = false;
+  loadClients();
+}
+
+function logout() {
+  localStorage.removeItem('admin_token');
+  location.href = '/admin/';
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+document.getElementById('addModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeAddModal();
+});
+
+loadClients();
+</script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マイページ</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+  body { background: #f0f5f1; }
+  .mypage-header {
+    background: linear-gradient(135deg, #2d8a4e 0%, #38a169 100%);
+    color: #fff;
+    margin: 0 -16px;
+    padding: 32px 24px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .mypage-header h1 { font-size: 16px; font-weight: 500; margin-bottom: 16px; opacity: 0.9; }
+  .remaining-box {
+    background: rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 20px;
+    display: inline-block;
+    min-width: 200px;
+  }
+  .remaining-num { font-size: 56px; font-weight: 700; line-height: 1; }
+  .remaining-label { font-size: 14px; margin-top: 4px; opacity: 0.85; }
+  .progress-white { height: 6px; background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden; margin-top: 12px; }
+  .progress-white-fill { height: 100%; background: #fff; border-radius: 3px; }
+  .plan-info {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 12px;
+  }
+  .session-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .session-card.pending {
+    opacity: 0.4;
+  }
+  .session-label { font-weight: 600; font-size: 14px; color: #2d8a4e; }
+  .session-label-pending { color: #aaa; }
+  .file-link {
+    display: inline-block;
+    background: #eef4ff;
+    color: #3b6fdb;
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .file-link:active { opacity: 0.7; }
+</style>
+</head>
+<body>
+<div class="app" style="padding: 0 16px 40px;">
+
+  <div id="content">
+    <div class="loading" style="padding-top: 80px;">読み込み中...</div>
+  </div>
+
+  <div id="error" style="display:none; text-align:center; padding-top:80px;">
+    <div style="font-size:48px; margin-bottom:16px;">?</div>
+    <div style="font-size:16px; font-weight:600; margin-bottom:8px;">ページが見つかりません</div>
+    <div class="text-sm text-muted">URLが正しいか確認してください</div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const params = new URLSearchParams(location.search);
+const token = params.get('t');
+
+if (!token) {
+  document.getElementById('content').style.display = 'none';
+  document.getElementById('error').style.display = 'block';
+} else {
+  loadMyPage();
+}
+
+async function loadMyPage() {
+  try {
+    const res = await fetch(API + '/clients?token=' + encodeURIComponent(token));
+    if (!res.ok) {
+      document.getElementById('content').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+      return;
+    }
+    const client = await res.json();
+    render(client);
+  } catch (e) {
+    document.getElementById('content').innerHTML = '<div class="loading">接続エラー。再読み込みしてください。</div>';
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function render(c) {
+  const r = c.totalSessions - c.sessions.length;
+  const done = c.sessions.length;
+  const pct = c.totalSessions > 0 ? Math.round((done / c.totalSessions) * 100) : 0;
+
+  let html = `
+    <div class="mypage-header">
+      <h1>${esc(c.name)} さんのマイページ</h1>
+      <div class="remaining-box">
+        <div class="remaining-num">${r}<span style="font-size:20px;">回</span></div>
+        <div class="remaining-label">残りセッション</div>
+        <div class="progress-white">
+          <div class="progress-white-fill" style="width:${pct}%"></div>
+        </div>
+      </div>
+      <div class="plan-info">${esc(c.plan)} / 全${c.totalSessions}回中 ${done}回完了</div>
+    </div>
+
+    <div style="padding: 0 4px;">
+      <h2 style="font-size:15px; font-weight:700; margin-bottom:12px;">セッション履歴</h2>
+  `;
+
+  for (let i = 0; i < c.totalSessions; i++) {
+    const s = c.sessions[i];
+    if (s) {
+      html += `
+        <div class="session-card">
+          <div>
+            <div class="session-label">${s.number}回目</div>
+            <div style="font-size:13px; color:#666; margin-top:2px;">${esc(s.date)}</div>
+          </div>
+          ${s.fileUrl
+            ? '<a href="' + s.fileUrl + '" target="_blank" class="file-link">資料を見る</a>'
+            : ''
+          }
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="session-card pending">
+          <div>
+            <div class="session-label session-label-pending">${i + 1}回目</div>
+            <div style="font-size:13px; color:#ccc; margin-top:2px;">未実施</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  html += `
+    </div>
+    <div style="text-align:center; padding:24px 0; font-size:11px; color:#aaa;">
+      Session Manager
+    </div>
+  `;
+
+  document.getElementById('content').innerHTML = html;
+  document.title = c.name + ' さんのマイページ';
+}
+</script>
+</body>
+</html>

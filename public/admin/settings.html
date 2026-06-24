@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>設定</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <a href="/admin/clients.html" class="back-link">&larr; 戻る</a>
+    <h1>設定</h1>
+  </div>
+
+  <div class="card">
+    <div class="card-header">パスワード変更</div>
+    <div class="card-body">
+      <p class="text-sm text-muted mb-8">初期パスワード「admin1234」から変更してください。</p>
+      <div class="form-group">
+        <label class="form-label">新しいパスワード</label>
+        <input type="password" id="newPw" class="form-input" placeholder="新しいパスワード">
+      </div>
+      <div class="form-group">
+        <label class="form-label">確認</label>
+        <input type="password" id="confirmPw" class="form-input" placeholder="もう一度入力">
+      </div>
+      <button class="btn btn-primary" onclick="changePw()">パスワードを変更</button>
+    </div>
+  </div>
+
+  <div class="card mt-16">
+    <div class="card-header">Excelインポート</div>
+    <div class="card-body">
+      <p class="text-sm text-muted mb-8">既存の「セッション購入管理表.xlsx」からクライアントデータを一括インポートできます。</p>
+      <div class="upload-area" id="importArea" onclick="document.getElementById('importFile').click()">
+        <input type="file" id="importFile" accept=".xlsx,.xls" onchange="importExcel(this)">
+        <div style="font-size:24px; margin-bottom:8px;">&#128196;</div>
+        <div>Excelファイルを選択</div>
+        <div style="font-size:11px; margin-top:4px;">.xlsx / .xls</div>
+      </div>
+      <div id="importResult" class="mt-12" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+const API = '/api';
+const TOKEN = localStorage.getItem('admin_token');
+if (!TOKEN) location.href = '/admin/';
+
+function headers() {
+  return { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+}
+
+async function changePw() {
+  const pw = document.getElementById('newPw').value;
+  const confirm = document.getElementById('confirmPw').value;
+  if (!pw || pw.length < 4) { alert('4文字以上のパスワードを入力してください'); return; }
+  if (pw !== confirm) { alert('パスワードが一致しません'); return; }
+
+  await fetch(API + '/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: TOKEN, newPassword: pw })
+  });
+
+  showToast('パスワードを変更しました');
+  document.getElementById('newPw').value = '';
+  document.getElementById('confirmPw').value = '';
+}
+
+async function importExcel(input) {
+  if (!input.files[0]) return;
+
+  const resultEl = document.getElementById('importResult');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = '<div class="text-sm text-muted">読み込み中...</div>';
+
+  const data = await input.files[0].arrayBuffer();
+  const wb = XLSX.read(data);
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+  const clients = [];
+
+  for (const row of rows) {
+    const name = row[1];
+    if (!name || typeof name !== 'string') continue;
+    const cleanName = name.replace(/[：:].+$/, '').replace(/^[▲●⚫]/, '').trim();
+    if (!cleanName) continue;
+
+    const plan = row[2] || '';
+    const sessionsText = row[3] || '';
+    const price = parseInt(row[4]) || 0;
+
+    let totalSessions = 0;
+    const numMatch = String(sessionsText).match(/(\d+)回/);
+    if (numMatch) totalSessions = parseInt(numMatch[1]);
+
+    const sessionDates = [];
+    for (let col = 5; col <= 10; col++) {
+      if (row[col]) {
+        let dateStr = String(row[col]).trim();
+        if (dateStr && dateStr !== 'NaN') {
+          sessionDates.push(dateStr);
+        }
+      }
+    }
+
+    clients.push({ name: cleanName, plan, totalSessions, price, sessionDates });
+  }
+
+  resultEl.innerHTML = `
+    <div class="card">
+      <div class="card-header">${clients.length}件のクライアントを検出</div>
+      <div class="card-body" style="max-height:300px; overflow-y:auto; padding:8px 16px;">
+        ${clients.map(c => `
+          <div style="padding:6px 0; border-bottom:1px solid #f0f0f0; font-size:13px;">
+            <strong>${esc(c.name)}</strong>
+            <span class="text-muted"> - ${esc(c.plan)} ${c.totalSessions}回 &yen;${c.price.toLocaleString()}</span>
+            <span class="text-muted"> (実施${c.sessionDates.length}回)</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <button class="btn btn-green mt-12" onclick="executeImport()">この内容でインポート実行</button>
+  `;
+
+  window._importData = clients;
+}
+
+async function executeImport() {
+  const clients = window._importData;
+  if (!clients) return;
+
+  const resultEl = document.getElementById('importResult');
+  resultEl.innerHTML = '<div class="text-sm text-muted">インポート中...</div>';
+
+  let count = 0;
+  for (const c of clients) {
+    const res = await fetch(API + '/clients', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        name: c.name,
+        plan: c.plan,
+        totalSessions: c.totalSessions,
+        price: c.price
+      })
+    });
+
+    if (res.ok) {
+      const created = await res.json();
+      for (const date of c.sessionDates) {
+        await fetch(API + '/sessions', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ clientId: created.id, date })
+        });
+      }
+      count++;
+    }
+  }
+
+  resultEl.innerHTML = `
+    <div class="card card-body" style="background:var(--green-light); border-color:var(--green);">
+      <div style="font-size:14px; font-weight:600; color:var(--green);">${count}件のインポートが完了しました</div>
+      <a href="/admin/clients.html" style="color:var(--primary); font-size:13px;">クライアント一覧を見る &rarr;</a>
+    </div>
+  `;
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+</script>
+</body>
+</html>

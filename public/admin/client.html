@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クライアント詳細</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <a href="/admin/clients.html" class="back-link">&larr; 一覧に戻る</a>
+    <button class="header-action" id="editToggle" onclick="toggleEdit()">編集</button>
+  </div>
+
+  <div id="content">
+    <div class="loading">読み込み中...</div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>クライアント情報の編集</h2>
+    <div class="form-group">
+      <label class="form-label">名前</label>
+      <input type="text" id="editName" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">プラン</label>
+      <select id="editPlan" class="form-input">
+        <option value="トライアル">トライアル</option>
+        <option value="無料セッション">無料セッション</option>
+        <option value="3か月">3か月</option>
+        <option value="F通常">F通常</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">総セッション回数</label>
+      <input type="number" id="editTotal" class="form-input" min="1">
+    </div>
+    <div class="form-group">
+      <label class="form-label">金額（円）</label>
+      <input type="number" id="editPrice" class="form-input">
+    </div>
+    <div class="flex gap-8 mt-20">
+      <button class="btn btn-outline" style="flex:1;" onclick="closeEdit()">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveEdit()">保存</button>
+    </div>
+    <button class="btn btn-danger mt-16" onclick="deleteClient()">このクライアントを削除</button>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const TOKEN = localStorage.getItem('admin_token');
+if (!TOKEN) location.href = '/admin/';
+
+const params = new URLSearchParams(location.search);
+const clientId = params.get('id');
+if (!clientId) location.href = '/admin/clients.html';
+
+let client = null;
+
+function headers() {
+  return { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+async function load() {
+  try {
+    const res = await fetch(API + '/clients', { headers: headers() });
+    if (res.status === 401) { location.href = '/admin/'; return; }
+    const clients = await res.json();
+    client = clients.find(c => c.id === clientId);
+    if (!client) { location.href = '/admin/clients.html'; return; }
+    render();
+  } catch (e) {
+    document.getElementById('content').innerHTML = '<div class="text-muted">接続エラー</div>';
+  }
+}
+
+function render() {
+  const r = client.totalSessions - client.sessions.length;
+  const pct = client.totalSessions > 0 ? Math.round((client.sessions.length / client.totalSessions) * 100) : 0;
+
+  let badgeClass = 'badge-active';
+  if (r <= 0) badgeClass = 'badge-done';
+  else if (r <= 1) badgeClass = 'badge-warn';
+
+  const baseUrl = location.origin + '/my/?t=' + client.pageToken;
+
+  let html = `
+    <div class="card">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <h2 style="font-size:20px; font-weight:700;">${esc(client.name)}</h2>
+          <span class="badge ${badgeClass}">${r <= 0 ? '完了' : '残' + r + '回'}</span>
+        </div>
+        <div class="text-sm text-muted mt-8">${esc(client.plan)} / 全${client.totalSessions}回 / &yen;${client.price.toLocaleString()}</div>
+        <div class="progress mt-12">
+          <div class="progress-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="text-sm text-muted mt-8">${client.sessions.length}回完了 / ${client.totalSessions}回中</div>
+      </div>
+    </div>
+
+    <div class="card mt-12">
+      <div class="card-header flex justify-between items-center">
+        <span>クライアント共有URL</span>
+        <button class="header-action" onclick="copyUrl()">コピー</button>
+      </div>
+      <div class="card-body">
+        <div style="font-size:12px; word-break:break-all; color:var(--primary); background:var(--primary-light); padding:10px; border-radius:6px;">${esc(baseUrl)}</div>
+        <div class="text-sm text-muted mt-8">このURLをLINEでクライアントに共有してください。ログイン不要で残回数・履歴・資料を確認できます。</div>
+      </div>
+    </div>
+  `;
+
+  if (r > 0) {
+    html += `
+      <div class="mt-16">
+        <button class="btn btn-green" id="completeBtn" onclick="completeSession()">セッション完了</button>
+        <div class="text-sm text-muted text-center mt-8">タップで残回数が-1され、今日の日付が記録されます</div>
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="card mt-16">
+      <div class="card-header">セッション履歴</div>
+      <div class="card-body" style="padding:8px 16px;">
+  `;
+
+  for (let i = 0; i < client.totalSessions; i++) {
+    const s = client.sessions[i];
+    if (s) {
+      html += `
+        <div class="session-row">
+          <div class="flex items-center gap-8">
+            <span class="session-num">${s.number}回目</span>
+            <span class="session-date">${esc(s.date)}</span>
+          </div>
+          <div class="flex items-center gap-8">
+            ${s.fileName
+              ? '<a href="' + s.fileUrl + '" target="_blank" class="session-file">' + esc(s.fileName) + '</a>'
+              : '<button class="header-action" onclick="openUpload(' + s.number + ')">資料UP</button>'
+            }
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="session-row session-pending">
+          <span>${i + 1}回目</span>
+          <span class="text-sm">未実施</span>
+        </div>
+      `;
+    }
+  }
+
+  html += '</div></div>';
+
+  document.getElementById('content').innerHTML = html;
+  document.title = client.name + ' - セッション管理';
+}
+
+async function completeSession() {
+  const btn = document.getElementById('completeBtn');
+  btn.disabled = true;
+  btn.textContent = '処理中...';
+
+  const today = new Date().toISOString().split('T')[0].replace(/-/g, '.');
+
+  await fetch(API + '/sessions', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ clientId: client.id, date: today })
+  });
+
+  showToast('セッション完了を記録しました');
+  await load();
+}
+
+function openUpload(sessionNumber) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.pdf,.jpg,.jpeg,.png,.gif,.webp';
+  input.onchange = async () => {
+    if (!input.files[0]) return;
+
+    showToast('アップロード中...');
+
+    const form = new FormData();
+    form.append('file', input.files[0]);
+    form.append('clientId', client.id);
+    form.append('sessionNumber', sessionNumber);
+
+    await fetch(API + '/upload', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+      body: form
+    });
+
+    showToast('資料をアップロードしました');
+    await load();
+  };
+  input.click();
+}
+
+function copyUrl() {
+  const url = location.origin + '/my/?t=' + client.pageToken;
+  navigator.clipboard.writeText(url).then(() => showToast('URLをコピーしました'));
+}
+
+function toggleEdit() {
+  document.getElementById('editName').value = client.name;
+  document.getElementById('editPlan').value = client.plan;
+  document.getElementById('editTotal').value = client.totalSessions;
+  document.getElementById('editPrice').value = client.price;
+  document.getElementById('editModal').classList.add('active');
+}
+
+function closeEdit() {
+  document.getElementById('editModal').classList.remove('active');
+}
+
+async function saveEdit() {
+  await fetch(API + '/clients', {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({
+      id: client.id,
+      name: document.getElementById('editName').value.trim(),
+      plan: document.getElementById('editPlan').value,
+      totalSessions: document.getElementById('editTotal').value,
+      price: document.getElementById('editPrice').value
+    })
+  });
+  closeEdit();
+  showToast('保存しました');
+  await load();
+}
+
+async function deleteClient() {
+  if (!confirm(client.name + ' を削除しますか？')) return;
+  await fetch(API + '/clients?id=' + client.id, {
+    method: 'DELETE',
+    headers: headers()
+  });
+  location.href = '/admin/clients.html';
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+document.getElementById('editModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeEdit();
+});
+
+load();
+</script>
+</body>
+</html>

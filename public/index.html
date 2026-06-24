@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Manager</title>
+<script>
+  if (localStorage.getItem('admin_token')) {
+    location.href = '/admin/clients.html';
+  } else {
+    location.href = '/admin/';
+  }
+</script>
+</head>
+<body></body>
+</html>

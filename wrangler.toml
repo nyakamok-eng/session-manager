@@ -1,0 +1,11 @@
+name = "session-manager"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "public"
+
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = ""
+
+[[r2_buckets]]
+binding = "SESSION_R2"
+bucket_name = "session-files"
