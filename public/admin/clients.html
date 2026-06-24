@@ -10,7 +10,10 @@
 <div class="app">
   <div class="header">
     <h1>クライアント管理</h1>
-    <button class="header-action" onclick="logout()">ログアウト</button>
+    <div class="flex gap-8">
+      <a href="/admin/settings.html" class="header-action" style="text-decoration:none;">設定</a>
+      <button class="header-action" onclick="logout()">ログアウト</button>
+    </div>
   </div>
 
   <div id="stats" style="display:none;" class="flex gap-8 mb-8">
