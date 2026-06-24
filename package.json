@@ -4,6 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "npx wrangler pages dev public --kv SESSION_KV --r2 SESSION_R2 --port 8788",
-    "deploy": "npx wrangler pages deploy public --project-name session-manager"
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4.104.0"
   }
 }
