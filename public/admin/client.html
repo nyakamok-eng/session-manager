@@ -176,10 +176,11 @@ function render() {
             <span class="session-date">${esc(s.date)}</span>
           </div>
           <div class="flex items-center gap-8">
-            ${s.fileName
-              ? '<a href="' + s.fileUrl + '" target="_blank" class="session-file">' + esc(s.fileName) + '</a>'
-              : '<button class="header-action" onclick="openUpload(' + s.number + ')">資料UP</button>'
+            ${s.fileUrl
+              ? '<a href="' + esc(s.fileUrl) + '" target="_blank" class="session-file">' + esc(s.fileName || '資料') + '</a>'
+              : ''
             }
+            <button class="header-action" onclick="openLinkInput(${s.number})">${s.fileUrl ? '変更' : '資料URL'}</button>
           </div>
         </div>
       `;
@@ -217,30 +218,25 @@ async function completeSession() {
   await load();
 }
 
-function openUpload(sessionNumber) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.pdf,.jpg,.jpeg,.png,.gif,.webp';
-  input.onchange = async () => {
-    if (!input.files[0]) return;
+function openLinkInput(sessionNumber) {
+  const session = client.sessions.find(s => s.number === sessionNumber);
+  const currentUrl = session && session.fileUrl ? session.fileUrl : '';
+  const url = prompt('資料のURL（Google Drive, Notionなど）を入力:', currentUrl);
+  if (url === null) return;
 
-    showToast('アップロード中...');
+  const name = url ? prompt('資料の表示名（任意）:', session && session.fileName ? session.fileName : '資料') : '';
 
-    const form = new FormData();
-    form.append('file', input.files[0]);
-    form.append('clientId', client.id);
-    form.append('sessionNumber', sessionNumber);
+  saveLinkUrl(sessionNumber, url.trim(), name ? name.trim() : '資料');
+}
 
-    await fetch(API + '/upload', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + TOKEN },
-      body: form
-    });
-
-    showToast('資料をアップロードしました');
-    await load();
-  };
-  input.click();
+async function saveLinkUrl(sessionNumber, url, name) {
+  await fetch(API + '/sessions', {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ clientId: client.id, sessionNumber, fileUrl: url, fileName: name })
+  });
+  showToast(url ? '資料URLを保存しました' : '資料URLを削除しました');
+  await load();
 }
 
 function copyUrl() {

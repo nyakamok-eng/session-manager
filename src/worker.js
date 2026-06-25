@@ -216,6 +216,24 @@ async function handleSessions(url, request, method, env) {
     return Response.json(data);
   }
 
+  if (method === "PUT") {
+    if (!(await verifyAdmin(request, env))) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const { clientId, sessionNumber, fileUrl, fileName } = await request.json();
+    const data = await env.SESSION_KV.get("client:" + clientId, "json");
+    if (!data) return Response.json({ error: "not_found" }, { status: 404 });
+
+    const session = data.sessions.find(s => s.number === sessionNumber);
+    if (!session) return Response.json({ error: "session_not_found" }, { status: 404 });
+
+    session.fileUrl = fileUrl || null;
+    session.fileName = fileName || null;
+
+    await env.SESSION_KV.put("client:" + clientId, JSON.stringify(data));
+    return Response.json(data);
+  }
+
   if (method === "DELETE") {
     if (!(await verifyAdmin(request, env))) {
       return Response.json({ error: "unauthorized" }, { status: 401 });
