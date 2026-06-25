@@ -35,6 +35,10 @@ async function handleAPI(url, request, env) {
       res = await handleClients(url, request, method, env);
     } else if (path === "/api/sessions") {
       res = await handleSessions(url, request, method, env);
+    } else if (path === "/api/upload" && method === "POST") {
+      res = await handleUpload(request, env);
+    } else if (path === "/api/file" && method === "GET") {
+      res = await handleFile(url, env);
     } else if (path === "/api/settings") {
       res = await handleSettings(url, request, method, env);
     } else {
@@ -273,4 +277,56 @@ async function handleSettings(url, request, method, env) {
   }
 
   return Response.json({ error: "method_not_allowed" }, { status: 405 });
+}
+
+async function handleUpload(request, env) {
+  if (!(await verifyAdmin(request, env))) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const formData = await request.formData();
+  const file = formData.get("file");
+  const clientId = formData.get("clientId");
+  const sessionNumber = parseInt(formData.get("sessionNumber"));
+
+  if (!file || !clientId || !sessionNumber) {
+    return Response.json({ error: "missing_fields" }, { status: 400 });
+  }
+
+  const arrayBuffer = await file.arrayBuffer();
+  const fileKey = "file:" + clientId + ":" + sessionNumber;
+
+  await env.SESSION_KV.put(fileKey, arrayBuffer, {
+    metadata: { contentType: file.type, fileName: file.name }
+  });
+
+  const data = await env.SESSION_KV.get("client:" + clientId, "json");
+  if (data) {
+    const session = data.sessions.find(s => s.number === sessionNumber);
+    if (session) {
+      session.fileUrl = "/api/file?key=" + encodeURIComponent(fileKey);
+      session.fileName = file.name;
+      await env.SESSION_KV.put("client:" + clientId, JSON.stringify(data));
+    }
+  }
+
+  return Response.json({ ok: true });
+}
+
+async function handleFile(url, env) {
+  const key = url.searchParams.get("key");
+  if (!key) return Response.json({ error: "key_required" }, { status: 400 });
+
+  const { value, metadata } = await env.SESSION_KV.getWithMetadata(key, "arrayBuffer");
+  if (!value) return Response.json({ error: "not_found" }, { status: 404 });
+
+  const contentType = metadata && metadata.contentType ? metadata.contentType : "application/octet-stream";
+  const fileName = metadata && metadata.fileName ? metadata.fileName : "file";
+
+  return new Response(value, {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": "inline; filename=\"" + fileName + "\""
+    }
+  });
 }
