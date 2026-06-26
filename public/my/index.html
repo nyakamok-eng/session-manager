@@ -125,6 +125,7 @@ function render(c, audioLink) {
         </div>
       </div>
       <div class="plan-info">全${c.totalSessions}回中 ${done}回完了</div>
+      ${c.expiryDate ? '<div style="font-size:12px; margin-top:6px; opacity:0.85;">使用期限: ' + esc(c.expiryDate) + '</div>' : ''}
     </div>
 
     <div style="padding: 0 4px;">

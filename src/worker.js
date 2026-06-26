@@ -169,6 +169,7 @@ async function handleClients(url, request, method, env) {
     if (body.totalSessions !== undefined) data.totalSessions = parseInt(body.totalSessions);
     if (body.price !== undefined) data.price = parseInt(body.price);
     if (body.sheetUrl !== undefined) data.sheetUrl = body.sheetUrl;
+    if (body.expiryDate !== undefined) data.expiryDate = body.expiryDate;
 
     await env.SESSION_KV.put("client:" + body.id, JSON.stringify(data));
 

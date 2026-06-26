@@ -44,6 +44,10 @@
       <label class="form-label">金額（円）</label>
       <input type="number" id="editPrice" class="form-input">
     </div>
+    <div class="form-group">
+      <label class="form-label">使用期限</label>
+      <input type="date" id="editExpiry" class="form-input">
+    </div>
     <div class="flex gap-8 mt-20">
       <button class="btn btn-outline" style="flex:1;" onclick="closeEdit()">キャンセル</button>
       <button class="btn btn-primary" style="flex:1;" onclick="saveEdit()">保存</button>
@@ -108,6 +112,7 @@ function render() {
           <div class="progress-fill" style="width:${pct}%"></div>
         </div>
         <div class="text-sm text-muted mt-8">${client.sessions.length}回完了 / ${client.totalSessions}回中</div>
+        ${client.expiryDate ? '<div class="text-sm mt-8" style="color:#e53e3e;">使用期限: ' + esc(client.expiryDate) + '</div>' : ''}
       </div>
     </div>
 
@@ -262,6 +267,7 @@ function toggleEdit() {
   document.getElementById('editPlan').value = client.plan;
   document.getElementById('editTotal').value = client.totalSessions;
   document.getElementById('editPrice').value = client.price;
+  document.getElementById('editExpiry').value = client.expiryDate ? client.expiryDate.replace(/\./g, '-') : '';
   document.getElementById('editModal').classList.add('active');
 }
 
@@ -278,7 +284,8 @@ async function saveEdit() {
       name: document.getElementById('editName').value.trim(),
       plan: document.getElementById('editPlan').value,
       totalSessions: document.getElementById('editTotal').value,
-      price: document.getElementById('editPrice').value
+      price: document.getElementById('editPrice').value,
+      expiryDate: document.getElementById('editExpiry').value ? document.getElementById('editExpiry').value.replace(/-/g, '.') : ''
     })
   });
   closeEdit();
