@@ -97,7 +97,10 @@ async function loadMyPage() {
     const client = await res.json();
     const audioRes = await fetch(API + '/settings?key=audioLink');
     const audioLink = audioRes.ok ? await audioRes.json() : {};
+    const timelogRes = await fetch(API + '/timelog?token=' + encodeURIComponent(token));
+    const timelogData = timelogRes.ok ? await timelogRes.json() : { status: 'none' };
     render(client, audioLink);
+    renderTimelog(timelogData);
   } catch (e) {
     document.getElementById('content').innerHTML = '<div class="loading">接続エラー。再読み込みしてください。</div>';
   }
@@ -130,6 +133,8 @@ function render(c, audioLink) {
 
     <div style="padding: 0 4px;">
   `;
+
+  html += '<div id="timelog-area"></div>';
 
   if (audioLink && audioLink.url) {
     html += `
@@ -191,6 +196,172 @@ function render(c, audioLink) {
 
   document.getElementById('content').innerHTML = html;
   document.title = c.name + ' さんのマイページ';
+}
+
+function renderTimelog(data) {
+  const area = document.getElementById('timelog-area');
+  if (!area || !data || data.status !== 'active') return;
+
+  const recorded = data.entries || [];
+  const nextDay = recorded.length + 1;
+
+  let html = `
+    <div style="background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+      <div style="text-align:center; margin-bottom:14px;">
+        <div style="font-size:15px; font-weight:700; color:#2d8a4e;">1週間タイムログ</div>
+        <div style="font-size:11px; color:#888; margin-top:2px;">7日分の時間の使い方を記録しましょう</div>
+        <div style="display:flex; justify-content:center; gap:5px; margin-top:10px;">
+  `;
+
+  for (let i = 1; i <= 7; i++) {
+    const isDone = recorded.some(e => e.dayNumber === i);
+    const isNext = (i === nextDay && nextDay <= 7);
+    let dotStyle = 'background:#e5e7eb; color:#9ca3af;';
+    if (isDone) dotStyle = 'background:#2d8a4e; color:#fff;';
+    else if (isNext) dotStyle = 'background:#d97706; color:#fff;';
+    html += '<div style="width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; ' + dotStyle + '">' + i + '</div>';
+  }
+
+  html += `
+        </div>
+        <div style="font-size:10px; color:#888; margin-top:6px;">${recorded.length} / 7日 記録済</div>
+      </div>
+  `;
+
+  for (const entry of recorded) {
+    html += `
+      <div style="border:1px solid #e8f5ee; border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer;" onclick="this.querySelector('.tl-body').style.display = this.querySelector('.tl-body').style.display === 'none' ? 'block' : 'none'">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:32px; height:32px; border-radius:50%; background:#2d8a4e; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600;">${entry.dayNumber}</div>
+            <span style="font-size:14px; font-weight:500;">${esc(entry.date)}</span>
+          </div>
+          <span style="font-size:11px; color:#2d8a4e; font-weight:500;">記録済</span>
+        </div>
+        <div class="tl-body" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid #f0f0f0;">
+    `;
+    if (entry.slots) {
+      for (const slot of entry.slots) {
+        html += '<div style="font-size:12px; padding:2px 0; color:#4a5568;"><span style="color:#888;">' + esc(slot.start) + ' - ' + esc(slot.end) + '</span> ' + esc(slot.activity) + '</div>';
+      }
+    }
+    if (entry.memo) {
+      html += '<div style="font-size:12px; color:#666; background:#f7fafc; border-radius:4px; padding:6px 8px; margin-top:6px;">' + esc(entry.memo) + '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  if (nextDay <= 7) {
+    html += `
+      <div style="border:1.5px solid #fde68a; border-radius:8px; padding:14px; margin-bottom:8px; background:#fffbeb;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:#d97706; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600;">${nextDay}</div>
+          <span style="font-size:14px; font-weight:600; color:#92400e;">${nextDay}日目を記録する</span>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px; color:#666; margin-bottom:4px; font-weight:500;">記録する日付</div>
+          <input type="date" id="tl-date" style="width:100%; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px;" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div id="tl-slots">
+          <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+            <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <span style="font-size:11px; color:#888;">〜</span>
+            <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
+          </div>
+          <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+            <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <span style="font-size:11px; color:#888;">〜</span>
+            <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
+          </div>
+          <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+            <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <span style="font-size:11px; color:#888;">〜</span>
+            <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
+          </div>
+        </div>
+        <button onclick="addTimelogSlot()" style="width:100%; padding:7px; border:1px dashed #cbd5e0; border-radius:6px; background:transparent; font-size:12px; color:#888; cursor:pointer; margin-bottom:10px;">+ 行を追加</button>
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px; color:#666; margin-bottom:4px; font-weight:500;">今日の気づき</div>
+          <textarea id="tl-memo" placeholder="例：午前中は集中できた、移動時間が意外と長い" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; min-height:50px; resize:vertical;"></textarea>
+        </div>
+        <button onclick="saveTimelog(${nextDay})" style="width:100%; padding:11px; background:#2d8a4e; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">この日の記録を保存</button>
+      </div>
+    `;
+  }
+
+  for (let i = nextDay + 1; i <= 7; i++) {
+    html += `
+      <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px; margin-bottom:8px; opacity:0.4;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:#e5e7eb; color:#9ca3af; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600;">${i}</div>
+          <span style="font-size:14px; color:#9ca3af;">${i}日目</span>
+        </div>
+      </div>
+    `;
+  }
+
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function addTimelogSlot() {
+  const container = document.getElementById('tl-slots');
+  const row = document.createElement('div');
+  row.className = 'tl-slot-row';
+  row.style.cssText = 'display:flex; align-items:center; gap:4px; margin-bottom:6px;';
+  row.innerHTML = `
+    <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+    <span style="font-size:11px; color:#888;">〜</span>
+    <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+    <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+    <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
+  `;
+  container.appendChild(row);
+}
+
+async function saveTimelog(dayNumber) {
+  const date = document.getElementById('tl-date').value;
+  if (!date) { alert('日付を選択してください'); return; }
+
+  const rows = document.querySelectorAll('.tl-slot-row');
+  const slots = [];
+  rows.forEach(row => {
+    const start = row.querySelector('.tl-start').value;
+    const end = row.querySelector('.tl-end').value;
+    const activity = row.querySelector('.tl-activity').value.trim();
+    if (start && activity) {
+      slots.push({ start, end, activity });
+    }
+  });
+
+  if (slots.length === 0) { alert('少なくとも1つの時間帯を入力してください'); return; }
+
+  const memo = document.getElementById('tl-memo').value.trim();
+
+  const dateObj = new Date(date);
+  const days = ['日','月','火','水','木','金','土'];
+  const formatted = (dateObj.getMonth()+1) + '/' + dateObj.getDate() + '(' + days[dateObj.getDay()] + ')';
+
+  await fetch(API + '/timelog', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'save',
+      token: token,
+      dayNumber: dayNumber,
+      date: formatted,
+      slots: slots,
+      memo: memo
+    })
+  });
+
+  loadMyPage();
 }
 </script>
 </body>

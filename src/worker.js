@@ -41,6 +41,8 @@ async function handleAPI(url, request, env) {
       res = await handleFile(url, env);
     } else if (path === "/api/settings") {
       res = await handleSettings(url, request, method, env);
+    } else if (path === "/api/timelog") {
+      res = await handleTimelog(url, request, method, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -274,6 +276,113 @@ async function handleSettings(url, request, method, env) {
     const { key, value } = await request.json();
     if (!key) return Response.json({ error: "key_required" }, { status: 400 });
     await env.SESSION_KV.put("settings:" + key, JSON.stringify(value));
+    return Response.json({ ok: true });
+  }
+
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
+}
+
+async function handleTimelog(url, request, method, env) {
+  if (method === "GET") {
+    const clientToken = url.searchParams.get("token");
+    const clientId = url.searchParams.get("clientId");
+
+    if (clientToken) {
+      const id = await env.SESSION_KV.get("token:" + clientToken);
+      if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      const data = await env.SESSION_KV.get("timelog:" + id, "json");
+      return Response.json(data || { status: "none" });
+    }
+
+    if (clientId) {
+      if (!(await verifyAdmin(request, env))) {
+        return Response.json({ error: "unauthorized" }, { status: 401 });
+      }
+      const data = await env.SESSION_KV.get("timelog:" + clientId, "json");
+      return Response.json(data || { status: "none" });
+    }
+
+    return Response.json({ error: "missing_params" }, { status: 400 });
+  }
+
+  if (method === "POST") {
+    const body = await request.json();
+    const action = body.action;
+
+    if (action === "start") {
+      if (!(await verifyAdmin(request, env))) {
+        return Response.json({ error: "unauthorized" }, { status: 401 });
+      }
+      const timelog = {
+        status: "active",
+        startedAt: new Date().toISOString(),
+        entries: []
+      };
+      await env.SESSION_KV.put("timelog:" + body.clientId, JSON.stringify(timelog));
+      return Response.json(timelog);
+    }
+
+    if (action === "save") {
+      const clientToken = body.token;
+      const clientId = body.clientId;
+      let id;
+
+      if (clientToken) {
+        id = await env.SESSION_KV.get("token:" + clientToken);
+        if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      } else if (clientId) {
+        if (!(await verifyAdmin(request, env))) {
+          return Response.json({ error: "unauthorized" }, { status: 401 });
+        }
+        id = clientId;
+      } else {
+        return Response.json({ error: "missing_params" }, { status: 400 });
+      }
+
+      const data = await env.SESSION_KV.get("timelog:" + id, "json");
+      if (!data || data.status !== "active") {
+        return Response.json({ error: "timelog_not_active" }, { status: 400 });
+      }
+
+      const entry = {
+        dayNumber: body.dayNumber,
+        date: body.date,
+        slots: body.slots || [],
+        memo: body.memo || ""
+      };
+
+      const existingIdx = data.entries.findIndex(e => e.dayNumber === body.dayNumber);
+      if (existingIdx >= 0) {
+        data.entries[existingIdx] = entry;
+      } else {
+        data.entries.push(entry);
+      }
+      data.entries.sort((a, b) => a.dayNumber - b.dayNumber);
+
+      await env.SESSION_KV.put("timelog:" + id, JSON.stringify(data));
+      return Response.json(data);
+    }
+
+    if (action === "stop") {
+      if (!(await verifyAdmin(request, env))) {
+        return Response.json({ error: "unauthorized" }, { status: 401 });
+      }
+      const data = await env.SESSION_KV.get("timelog:" + body.clientId, "json");
+      if (!data) return Response.json({ error: "not_found" }, { status: 404 });
+      data.status = "completed";
+      await env.SESSION_KV.put("timelog:" + body.clientId, JSON.stringify(data));
+      return Response.json(data);
+    }
+
+    return Response.json({ error: "invalid_action" }, { status: 400 });
+  }
+
+  if (method === "DELETE") {
+    if (!(await verifyAdmin(request, env))) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const clientId = url.searchParams.get("clientId");
+    await env.SESSION_KV.delete("timelog:" + clientId);
     return Response.json({ ok: true });
   }
 

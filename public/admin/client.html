@@ -201,8 +201,11 @@ function render() {
 
   html += '</div></div>';
 
+  html += '<div id="timelog-area" class="mt-16"></div>';
+
   document.getElementById('content').innerHTML = html;
   document.title = client.name + ' - セッション管理';
+  loadTimelog();
 }
 
 async function completeSession() {
@@ -337,6 +340,138 @@ function showToast(msg) {
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2500);
+}
+
+async function loadTimelog() {
+  const area = document.getElementById('timelog-area');
+  if (!area) return;
+  try {
+    const res = await fetch(API + '/timelog?clientId=' + clientId, { headers: headers() });
+    const data = await res.json();
+    renderTimelog(data, area);
+  } catch (e) {
+    area.innerHTML = '';
+  }
+}
+
+function renderTimelog(data, area) {
+  if (!data || data.status === 'none') {
+    area.innerHTML = `
+      <div class="card">
+        <div class="card-header">1週間タイムログ</div>
+        <div class="card-body">
+          <div class="text-sm text-muted mb-8">クライアントに7日分のタイムログワークを開始します。</div>
+          <button class="btn btn-green" onclick="startTimelog()">タイムログを開始する</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (data.status === 'active') {
+    let html = `
+      <div class="card">
+        <div class="card-header flex justify-between items-center">
+          <span>1週間タイムログ（実施中）</span>
+          <button class="header-action" style="color:#e53e3e;" onclick="stopTimelog()">終了</button>
+        </div>
+        <div class="card-body">
+          <div class="text-sm text-muted mb-8">${data.entries.length} / 7日 記録済</div>
+    `;
+
+    if (data.entries.length === 0) {
+      html += '<div class="text-sm text-muted">まだ記録がありません</div>';
+    }
+
+    for (const entry of data.entries) {
+      html += `
+        <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:8px;">
+          <div class="flex justify-between items-center" style="margin-bottom:8px;">
+            <span style="font-weight:600; font-size:14px;">${entry.dayNumber}日目</span>
+            <span class="text-sm text-muted">${esc(entry.date)}</span>
+          </div>
+      `;
+      if (entry.slots && entry.slots.length > 0) {
+        for (const slot of entry.slots) {
+          html += `<div style="font-size:12px; padding:3px 0; color:#4a5568;"><span style="color:#888; min-width:80px; display:inline-block;">${esc(slot.start)} - ${esc(slot.end)}</span> ${esc(slot.activity)}</div>`;
+        }
+      }
+      if (entry.memo) {
+        html += `<div style="font-size:12px; color:#666; background:#f7fafc; border-radius:4px; padding:6px 8px; margin-top:6px;">${esc(entry.memo)}</div>`;
+      }
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+    area.innerHTML = html;
+    return;
+  }
+
+  if (data.status === 'completed') {
+    let html = `
+      <div class="card">
+        <div class="card-header flex justify-between items-center">
+          <span>1週間タイムログ（完了）</span>
+          <button class="header-action" onclick="restartTimelog()">再開</button>
+        </div>
+        <div class="card-body">
+          <div class="text-sm text-muted mb-8">${data.entries.length} / 7日 記録済</div>
+    `;
+
+    for (const entry of data.entries) {
+      html += `
+        <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-bottom:8px;">
+          <div class="flex justify-between items-center" style="margin-bottom:8px;">
+            <span style="font-weight:600; font-size:14px;">${entry.dayNumber}日目</span>
+            <span class="text-sm text-muted">${esc(entry.date)}</span>
+          </div>
+      `;
+      if (entry.slots && entry.slots.length > 0) {
+        for (const slot of entry.slots) {
+          html += `<div style="font-size:12px; padding:3px 0; color:#4a5568;"><span style="color:#888; min-width:80px; display:inline-block;">${esc(slot.start)} - ${esc(slot.end)}</span> ${esc(slot.activity)}</div>`;
+        }
+      }
+      if (entry.memo) {
+        html += `<div style="font-size:12px; color:#666; background:#f7fafc; border-radius:4px; padding:6px 8px; margin-top:6px;">${esc(entry.memo)}</div>`;
+      }
+      html += '</div>';
+    }
+
+    html += '</div></div>';
+    area.innerHTML = html;
+  }
+}
+
+async function startTimelog() {
+  await fetch(API + '/timelog', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'start', clientId: client.id })
+  });
+  showToast('タイムログを開始しました');
+  await load();
+}
+
+async function stopTimelog() {
+  if (!confirm('タイムログを終了しますか？クライアントのマイページから非表示になります。')) return;
+  await fetch(API + '/timelog', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'stop', clientId: client.id })
+  });
+  showToast('タイムログを終了しました');
+  await load();
+}
+
+async function restartTimelog() {
+  if (!confirm('タイムログを再開しますか？以前の記録は削除され、新しく始まります。')) return;
+  await fetch(API + '/timelog', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'start', clientId: client.id })
+  });
+  showToast('タイムログを再開しました');
+  await load();
 }
 
 document.getElementById('editModal').addEventListener('click', e => {
