@@ -248,6 +248,12 @@ function renderTimelog(data) {
     if (entry.memo) {
       html += '<div style="font-size:12px; color:#666; background:#f7fafc; border-radius:4px; padding:6px 8px; margin-top:6px;">' + esc(entry.memo) + '</div>';
     }
+    html += `
+          <div style="display:flex; gap:8px; margin-top:10px; padding-top:8px; border-top:1px solid #f0f0f0;">
+            <button onclick="event.stopPropagation(); editTimelogEntry(${entry.dayNumber})" style="flex:1; padding:7px; background:#fff; border:1px solid #2d8a4e; border-radius:6px; color:#2d8a4e; font-size:12px; font-weight:500; cursor:pointer;">編集</button>
+            <button onclick="event.stopPropagation(); deleteTimelogEntry(${entry.dayNumber})" style="flex:1; padding:7px; background:#fff; border:1px solid #e53e3e; border-radius:6px; color:#e53e3e; font-size:12px; font-weight:500; cursor:pointer;">削除</button>
+          </div>
+    `;
     html += '</div></div>';
   }
 
@@ -362,6 +368,85 @@ async function saveTimelog(dayNumber) {
   });
 
   loadMyPage();
+}
+
+let currentTimelogData = null;
+
+async function deleteTimelogEntry(dayNumber) {
+  if (!confirm(dayNumber + '日目の記録を削除しますか？')) return;
+  await fetch(API + '/timelog', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'deleteEntry',
+      token: token,
+      dayNumber: dayNumber
+    })
+  });
+  loadMyPage();
+}
+
+function editTimelogEntry(dayNumber) {
+  const res = fetch(API + '/timelog?token=' + encodeURIComponent(token));
+  res.then(r => r.json()).then(data => {
+    const entry = data.entries.find(e => e.dayNumber === dayNumber);
+    if (!entry) return;
+
+    const area = document.getElementById('timelog-area');
+    const cards = area.querySelectorAll('div');
+
+    let editHtml = `
+      <div style="border:1.5px solid #2d8a4e; border-radius:8px; padding:14px; margin-bottom:8px; background:#e8f5ee;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <div style="width:32px; height:32px; border-radius:50%; background:#2d8a4e; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600;">${dayNumber}</div>
+          <span style="font-size:14px; font-weight:600; color:#1a5c38;">${dayNumber}日目を編集中</span>
+        </div>
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px; color:#666; margin-bottom:4px; font-weight:500;">日付</div>
+          <input type="date" id="tl-date" style="width:100%; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px;" value="${entryDateToInput(entry.date)}">
+        </div>
+        <div id="tl-slots">
+    `;
+
+    for (const slot of entry.slots) {
+      editHtml += `
+        <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+          <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;" value="${slot.start}">
+          <span style="font-size:11px; color:#888;">〜</span>
+          <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;" value="${slot.end}">
+          <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;" value="${esc(slot.activity)}">
+          <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
+        </div>
+      `;
+    }
+
+    editHtml += `
+        </div>
+        <button onclick="addTimelogSlot()" style="width:100%; padding:7px; border:1px dashed #cbd5e0; border-radius:6px; background:transparent; font-size:12px; color:#888; cursor:pointer; margin-bottom:10px;">+ 行を追加</button>
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px; color:#666; margin-bottom:4px; font-weight:500;">今日の気づき</div>
+          <textarea id="tl-memo" placeholder="例：午前中は集中できた" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; min-height:50px; resize:vertical;">${esc(entry.memo || '')}</textarea>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="loadMyPage()" style="flex:1; padding:10px; background:#fff; border:1px solid #cbd5e0; border-radius:8px; font-size:13px; color:#666; cursor:pointer;">キャンセル</button>
+          <button onclick="saveTimelog(${dayNumber})" style="flex:1; padding:10px; background:#2d8a4e; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;">保存</button>
+        </div>
+      </div>
+    `;
+
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = editHtml;
+    area.innerHTML = '';
+    area.appendChild(wrapper);
+  });
+}
+
+function entryDateToInput(dateStr) {
+  const match = dateStr.match(/(\d+)\/(\d+)/);
+  if (!match) return new Date().toISOString().split('T')[0];
+  const m = match[1].padStart(2, '0');
+  const d = match[2].padStart(2, '0');
+  return '2026-' + m + '-' + d;
 }
 </script>
 </body>

@@ -374,6 +374,35 @@ async function handleTimelog(url, request, method, env) {
       return Response.json(data);
     }
 
+    if (action === "deleteEntry") {
+      const clientToken = body.token;
+      const clientId = body.clientId;
+      let id;
+
+      if (clientToken) {
+        id = await env.SESSION_KV.get("token:" + clientToken);
+        if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      } else if (clientId) {
+        if (!(await verifyAdmin(request, env))) {
+          return Response.json({ error: "unauthorized" }, { status: 401 });
+        }
+        id = clientId;
+      } else {
+        return Response.json({ error: "missing_params" }, { status: 400 });
+      }
+
+      const data = await env.SESSION_KV.get("timelog:" + id, "json");
+      if (!data || data.status !== "active") {
+        return Response.json({ error: "timelog_not_active" }, { status: 400 });
+      }
+
+      data.entries = data.entries.filter(e => e.dayNumber !== body.dayNumber);
+      data.entries.forEach((e, i) => e.dayNumber = i + 1);
+
+      await env.SESSION_KV.put("timelog:" + id, JSON.stringify(data));
+      return Response.json(data);
+    }
+
     return Response.json({ error: "invalid_action" }, { status: 400 });
   }
 
