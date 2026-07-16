@@ -203,9 +203,12 @@ function render() {
 
   html += '<div id="timelog-area" class="mt-16"></div>';
 
+  html += '<div id="archive-area" class="mt-16"></div>';
+
   document.getElementById('content').innerHTML = html;
   document.title = client.name + ' - セッション管理';
   loadTimelog();
+  loadArchiveAccess();
 }
 
 async function completeSession() {
@@ -472,6 +475,72 @@ async function restartTimelog() {
   });
   showToast('タイムログを再開しました');
   await load();
+}
+
+async function loadArchiveAccess() {
+  const area = document.getElementById('archive-area');
+  if (!area) return;
+  try {
+    const res = await fetch(API + '/archives', { headers: headers() });
+    const archives = await res.json();
+    renderArchiveAccess(archives, area);
+  } catch (e) {}
+}
+
+function renderArchiveAccess(archives, area) {
+  if (archives.length === 0) {
+    area.innerHTML = '';
+    return;
+  }
+
+  const access = client.archiveAccess || [];
+
+  let html = `
+    <div class="card">
+      <div class="card-header">シェア会アーカイブ閲覧権限</div>
+      <div class="card-body">
+        <div class="text-sm text-muted mb-8">チェックしたアーカイブがこのクライアントのマイページに表示されます。</div>
+  `;
+
+  for (const a of archives) {
+    const checked = access.includes(a.id) ? 'checked' : '';
+    html += `
+      <div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+        <input type="checkbox" class="archive-check" value="${a.id}" ${checked} style="width:16px; height:16px; accent-color:var(--primary);">
+        <span style="flex:1; font-size:13px;">${esc(a.title)}</span>
+        <span class="text-sm text-muted">${esc(a.date)}</span>
+      </div>
+    `;
+  }
+
+  html += `
+        <div class="flex gap-8 mt-12">
+          <button class="btn btn-outline" style="flex:1; font-size:12px;" onclick="setAllArchives(true)">全てON</button>
+          <button class="btn btn-outline" style="flex:1; font-size:12px;" onclick="setAllArchives(false)">全てOFF</button>
+          <button class="btn btn-primary" style="flex:1; font-size:12px;" onclick="saveArchiveAccess()">保存</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  area.innerHTML = html;
+}
+
+function setAllArchives(on) {
+  document.querySelectorAll('.archive-check').forEach(c => c.checked = on);
+}
+
+async function saveArchiveAccess() {
+  const checks = document.querySelectorAll('.archive-check');
+  const ids = [];
+  checks.forEach(c => { if (c.checked) ids.push(c.value); });
+  await fetch(API + '/archives', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'setAccess', clientId: client.id, archiveIds: ids })
+  });
+  client.archiveAccess = ids;
+  showToast('閲覧権限を保存しました');
 }
 
 document.getElementById('editModal').addEventListener('click', e => {

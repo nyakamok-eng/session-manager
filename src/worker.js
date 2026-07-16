@@ -43,6 +43,8 @@ async function handleAPI(url, request, env) {
       res = await handleSettings(url, request, method, env);
     } else if (path === "/api/timelog") {
       res = await handleTimelog(url, request, method, env);
+    } else if (path === "/api/archives") {
+      res = await handleArchives(url, request, method, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -413,6 +415,64 @@ async function handleTimelog(url, request, method, env) {
     const clientId = url.searchParams.get("clientId");
     await env.SESSION_KV.delete("timelog:" + clientId);
     return Response.json({ ok: true });
+  }
+
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
+}
+
+async function handleArchives(url, request, method, env) {
+  if (method === "GET") {
+    const clientToken = url.searchParams.get("token");
+    if (clientToken) {
+      const clientId = await env.SESSION_KV.get("token:" + clientToken);
+      if (!clientId) return Response.json({ error: "not_found" }, { status: 404 });
+      const clientData = await env.SESSION_KV.get("client:" + clientId, "json");
+      if (!clientData) return Response.json({ error: "not_found" }, { status: 404 });
+      const archives = await env.SESSION_KV.get("settings:shareArchives", "json") || [];
+      const access = clientData.archiveAccess || [];
+      const permitted = archives.filter(a => access.includes(a.id));
+      return Response.json(permitted);
+    }
+
+    if (!(await verifyAdmin(request, env))) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const archives = await env.SESSION_KV.get("settings:shareArchives", "json") || [];
+    return Response.json(archives);
+  }
+
+  if (!(await verifyAdmin(request, env))) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (method === "POST") {
+    const body = await request.json();
+    const action = body.action;
+
+    if (action === "add") {
+      const archives = await env.SESSION_KV.get("settings:shareArchives", "json") || [];
+      const id = crypto.randomUUID().slice(0, 8);
+      archives.unshift({ id, title: body.title, url: body.url, date: body.date });
+      await env.SESSION_KV.put("settings:shareArchives", JSON.stringify(archives));
+      return Response.json(archives);
+    }
+
+    if (action === "delete") {
+      let archives = await env.SESSION_KV.get("settings:shareArchives", "json") || [];
+      archives = archives.filter(a => a.id !== body.id);
+      await env.SESSION_KV.put("settings:shareArchives", JSON.stringify(archives));
+      return Response.json(archives);
+    }
+
+    if (action === "setAccess") {
+      const clientData = await env.SESSION_KV.get("client:" + body.clientId, "json");
+      if (!clientData) return Response.json({ error: "not_found" }, { status: 404 });
+      clientData.archiveAccess = body.archiveIds || [];
+      await env.SESSION_KV.put("client:" + body.clientId, JSON.stringify(clientData));
+      return Response.json({ ok: true });
+    }
+
+    return Response.json({ error: "invalid_action" }, { status: 400 });
   }
 
   return Response.json({ error: "method_not_allowed" }, { status: 405 });
