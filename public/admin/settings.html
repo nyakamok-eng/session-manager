@@ -268,7 +268,10 @@ async function loadArchives() {
   } catch (e) {}
 }
 
+let allArchives = [];
+
 function renderArchives(archives) {
+  allArchives = archives;
   const el = document.getElementById('archiveList');
   if (archives.length === 0) {
     el.innerHTML = '<div class="text-sm text-muted">アーカイブがまだありません</div>';
@@ -281,9 +284,52 @@ function renderArchives(archives) {
         <div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(a.url)}</div>
       </div>
       <div style="font-size:11px; color:#888; white-space:nowrap;">${esc(a.date)}</div>
+      <button class="header-action" onclick="editArchive('${a.id}')">編集</button>
       <button class="header-action" style="color:#e53e3e;" onclick="deleteArchive('${a.id}')">削除</button>
     </div>
   `).join('');
+}
+
+function editArchive(id) {
+  const a = allArchives.find(x => x.id === id);
+  if (!a) return;
+  const dateVal = a.date ? a.date.replace(/\./g, '-') : '';
+  const el = document.getElementById('archiveList');
+  el.innerHTML = `
+    <div style="background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:8px;">
+      <div class="form-group">
+        <label class="form-label">タイトル</label>
+        <input type="text" id="editArchiveTitle" class="form-input" value="${esc(a.title)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">YouTube URL</label>
+        <input type="url" id="editArchiveUrl" class="form-input" value="${esc(a.url)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">開催日</label>
+        <input type="date" id="editArchiveDate" class="form-input" value="${dateVal}">
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-outline" style="flex:1;" onclick="loadArchives()">キャンセル</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="saveArchiveEdit('${id}')">保存</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveArchiveEdit(id) {
+  const title = document.getElementById('editArchiveTitle').value.trim();
+  const url = document.getElementById('editArchiveUrl').value.trim();
+  const dateVal = document.getElementById('editArchiveDate').value;
+  if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
+  const date = dateVal ? dateVal.replace(/-/g, '.') : '';
+  await fetch(API + '/archives', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'edit', id, title, url, date })
+  });
+  showToast('保存しました');
+  loadArchives();
 }
 
 function toggleArchiveAdd() {

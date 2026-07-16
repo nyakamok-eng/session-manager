@@ -457,6 +457,17 @@ async function handleArchives(url, request, method, env) {
       return Response.json(archives);
     }
 
+    if (action === "edit") {
+      const archives = await env.SESSION_KV.get("settings:shareArchives", "json") || [];
+      const item = archives.find(a => a.id === body.id);
+      if (!item) return Response.json({ error: "not_found" }, { status: 404 });
+      if (body.title !== undefined) item.title = body.title;
+      if (body.url !== undefined) item.url = body.url;
+      if (body.date !== undefined) item.date = body.date;
+      await env.SESSION_KV.put("settings:shareArchives", JSON.stringify(archives));
+      return Response.json(archives);
+    }
+
     if (action === "delete") {
       let archives = await env.SESSION_KV.get("settings:shareArchives", "json") || [];
       archives = archives.filter(a => a.id !== body.id);
