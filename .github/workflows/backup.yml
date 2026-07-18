@@ -1,0 +1,39 @@
+name: Weekly KV Backup
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # 毎週日曜 00:00 UTC (日本時間 09:00)
+  workflow_dispatch: {}   # 手動実行も可能
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Export data from API
+        run: |
+          curl -s -H "X-Export-Key: ${{ secrets.EXPORT_KEY }}" \
+            "https://session-manager.nyakamok.workers.dev/api/export" \
+            -o backup.json
+
+      - name: Save backup with timestamp
+        run: |
+          mkdir -p backups
+          DATE=$(date +%Y-%m-%d)
+          cp backup.json "backups/backup-${DATE}.json"
+          # 最新版も保持
+          cp backup.json backups/latest.json
+
+      - name: Cleanup old backups (keep 12 weeks)
+        run: |
+          cd backups
+          ls -1 backup-*.json | sort | head -n -12 | xargs -r rm
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backups/
+          git diff --cached --quiet || git commit -m "backup: $(date +%Y-%m-%d)"
+          git push

@@ -45,6 +45,8 @@ async function handleAPI(url, request, env) {
       res = await handleTimelog(url, request, method, env);
     } else if (path === "/api/archives") {
       res = await handleArchives(url, request, method, env);
+    } else if (path === "/api/export" && method === "GET") {
+      res = await handleExport(request, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -539,4 +541,42 @@ async function handleFile(url, env) {
       "Content-Disposition": "inline; filename=\"" + fileName + "\""
     }
   });
+}
+
+async function handleExport(request, env) {
+  const auth = request.headers.get("Authorization");
+  const exportKey = request.headers.get("X-Export-Key");
+
+  if (exportKey) {
+    const storedKey = await env.SESSION_KV.get("settings:exportKey");
+    if (!storedKey || exportKey !== storedKey) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+  } else {
+    if (!(await verifyAdmin(request, env))) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+  }
+
+  const clientList = await env.SESSION_KV.get("client:list", "json") || [];
+  const clients = [];
+  for (const item of clientList) {
+    const data = await env.SESSION_KV.get("client:" + item.id, "json");
+    if (data) {
+      const timelog = await env.SESSION_KV.get("timelog:" + item.id, "json");
+      clients.push({ ...data, timelog: timelog || null });
+    }
+  }
+
+  const archives = await env.SESSION_KV.get("settings:shareArchives", "json") || [];
+  const audioLink = await env.SESSION_KV.get("settings:audioLink", "json") || null;
+
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    clients,
+    archives,
+    audioLink
+  };
+
+  return Response.json(exportData);
 }
