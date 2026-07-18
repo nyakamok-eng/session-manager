@@ -548,7 +548,7 @@ async function handleExport(request, env) {
   const exportKey = request.headers.get("X-Export-Key");
 
   if (exportKey) {
-    const storedKey = await env.SESSION_KV.get("settings:exportKey");
+    const storedKey = await env.SESSION_KV.get("settings:exportKey", "json");
     if (!storedKey || exportKey !== storedKey) {
       return Response.json({ error: "unauthorized" }, { status: 401 });
     }
