@@ -47,6 +47,8 @@ async function handleAPI(url, request, env) {
       res = await handleArchives(url, request, method, env);
     } else if (path === "/api/export" && method === "GET") {
       res = await handleExport(request, env);
+    } else if (path === "/api/errors") {
+      res = await handleErrors(url, request, method, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -57,6 +59,7 @@ async function handleAPI(url, request, env) {
     }
     return new Response(res.body, { status: res.status, headers });
   } catch (e) {
+    await logError(env, path, method, e);
     return Response.json({ error: "server_error" }, { status: 500, headers: corsHeaders });
   }
 }
@@ -571,12 +574,52 @@ async function handleExport(request, env) {
   const archives = await env.SESSION_KV.get("settings:shareArchives", "json") || [];
   const audioLink = await env.SESSION_KV.get("settings:audioLink", "json") || null;
 
+  const errorLogs = await env.SESSION_KV.get("system:errorLogs", "json") || [];
+
   const exportData = {
     exportedAt: new Date().toISOString(),
     clients,
     archives,
-    audioLink
+    audioLink,
+    errorLogs
   };
 
   return Response.json(exportData);
+}
+
+async function logError(env, endpoint, method, error) {
+  try {
+    const logs = await env.SESSION_KV.get("system:errorLogs", "json") || [];
+    logs.unshift({
+      id: crypto.randomUUID().slice(0, 8),
+      timestamp: new Date().toISOString(),
+      endpoint,
+      method,
+      message: error.message || String(error),
+      stack: error.stack || null
+    });
+    if (logs.length > 100) logs.length = 100;
+    await env.SESSION_KV.put("system:errorLogs", JSON.stringify(logs));
+  } catch (e) {}
+}
+
+async function handleErrors(url, request, method, env) {
+  if (!(await verifyAdmin(request, env))) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (method === "GET") {
+    const logs = await env.SESSION_KV.get("system:errorLogs", "json") || [];
+    return Response.json(logs);
+  }
+
+  if (method === "POST") {
+    const { action } = await request.json();
+    if (action === "clear") {
+      await env.SESSION_KV.put("system:errorLogs", JSON.stringify([]));
+      return Response.json({ ok: true });
+    }
+  }
+
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
 }

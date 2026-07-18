@@ -93,6 +93,16 @@
   </div>
 
   <div class="card mt-16">
+    <div class="card-header flex justify-between items-center">
+      <span>エラーログ</span>
+      <button class="header-action" onclick="clearErrors()">クリア</button>
+    </div>
+    <div class="card-body">
+      <div id="errorLogList"><div class="text-sm text-muted">読み込み中...</div></div>
+    </div>
+  </div>
+
+  <div class="card mt-16">
     <div class="card-header">Excelインポート</div>
     <div class="card-body">
       <p class="text-sm text-muted mb-8">既存の「セッション購入管理表.xlsx」からクライアントデータを一括インポートできます。</p>
@@ -385,6 +395,49 @@ async function deleteArchive(id) {
 }
 
 loadExportKey();
+loadErrorLogs();
+
+async function loadErrorLogs() {
+  try {
+    const res = await fetch(API + '/errors', { headers: headers() });
+    const logs = await res.json();
+    renderErrorLogs(logs);
+  } catch (e) {
+    document.getElementById('errorLogList').innerHTML = '<div class="text-sm text-muted">取得できませんでした</div>';
+  }
+}
+
+function renderErrorLogs(logs) {
+  const el = document.getElementById('errorLogList');
+  if (!logs || logs.length === 0) {
+    el.innerHTML = '<div class="text-sm text-muted">エラーはありません</div>';
+    return;
+  }
+  el.innerHTML = logs.map(l => {
+    const d = new Date(l.timestamp);
+    const dateStr = d.toLocaleDateString('ja-JP') + ' ' + d.toLocaleTimeString('ja-JP');
+    return `
+      <div style="padding:8px 0; border-bottom:1px solid #f0f0f0; font-size:12px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+          <span style="font-weight:600; color:#e53e3e;">${esc(l.method)} ${esc(l.endpoint)}</span>
+          <span class="text-muted">${dateStr}</span>
+        </div>
+        <div style="color:#666;">${esc(l.message)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function clearErrors() {
+  if (!confirm('エラーログをクリアしますか？')) return;
+  await fetch(API + '/errors', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'clear' })
+  });
+  showToast('クリアしました');
+  loadErrorLogs();
+}
 
 async function loadExportKey() {
   try {
