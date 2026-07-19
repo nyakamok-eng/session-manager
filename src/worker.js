@@ -381,6 +381,17 @@ async function handleTimelog(url, request, method, env) {
       return Response.json(data);
     }
 
+    if (action === "adminMemo") {
+      if (!(await verifyAdmin(request, env))) {
+        return Response.json({ error: "unauthorized" }, { status: 401 });
+      }
+      const data = await env.SESSION_KV.get("timelog:" + body.clientId, "json");
+      if (!data) return Response.json({ error: "not_found" }, { status: 404 });
+      data.adminMemo = body.memo || "";
+      await env.SESSION_KV.put("timelog:" + body.clientId, JSON.stringify(data));
+      return Response.json(data);
+    }
+
     if (action === "deleteEntry") {
       const clientToken = body.token;
       const clientId = body.clientId;

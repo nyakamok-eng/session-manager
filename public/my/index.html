@@ -317,6 +317,15 @@ function renderTimelog(data) {
     `;
   }
 
+  if (data.adminMemo) {
+    html += `
+      <div style="border:1px solid #d1fae5; border-radius:8px; padding:14px; margin-top:4px; background:#ecfdf5;">
+        <div style="font-size:12px; font-weight:600; color:#065f46; margin-bottom:6px;">コーチからの提案</div>
+        <div style="font-size:13px; color:#1a2e23; white-space:pre-wrap;">${esc(data.adminMemo)}</div>
+      </div>
+    `;
+  }
+
   html += '</div>';
   area.innerHTML = html;
 }

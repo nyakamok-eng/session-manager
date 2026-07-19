@@ -405,6 +405,13 @@ function renderTimelog(data, area) {
       html += '</div>';
     }
 
+    html += `
+      <div style="margin-top:12px; border-top:1px solid #e2e8f0; padding-top:12px;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">提案メモ</div>
+        <textarea id="adminMemoInput" class="form-input" rows="3" placeholder="クライアントへの提案内容を記入...">${esc(data.adminMemo || '')}</textarea>
+        <button class="btn btn-primary mt-8" onclick="saveAdminMemo()">メモを保存</button>
+      </div>
+    `;
     html += '</div></div>';
     area.innerHTML = html;
     return;
@@ -440,6 +447,13 @@ function renderTimelog(data, area) {
       html += '</div>';
     }
 
+    html += `
+      <div style="margin-top:12px; border-top:1px solid #e2e8f0; padding-top:12px;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">提案メモ</div>
+        <textarea id="adminMemoInput" class="form-input" rows="3" placeholder="クライアントへの提案内容を記入...">${esc(data.adminMemo || '')}</textarea>
+        <button class="btn btn-primary mt-8" onclick="saveAdminMemo()">メモを保存</button>
+      </div>
+    `;
     html += '</div></div>';
     area.innerHTML = html;
   }
@@ -464,6 +478,16 @@ async function stopTimelog() {
   });
   showToast('タイムログを終了しました');
   await load();
+}
+
+async function saveAdminMemo() {
+  const memo = document.getElementById('adminMemoInput').value;
+  await fetch(API + '/timelog', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'adminMemo', clientId: client.id, memo })
+  });
+  showToast('メモを保存しました');
 }
 
 async function restartTimelog() {
