@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お片付けSession</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Noto Sans JP', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+  background: #f0f5f1; color: #1a2e23;
+  -webkit-font-smoothing: antialiased;
+}
+.frame { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+.page-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px; border-bottom: 1px solid #e2ebe6;
+  background: #fff;
+}
+.back-btn { font-size: 14px; color: #2d8a4e; text-decoration: none; font-weight: 500; }
+.page-title { font-size: 16px; font-weight: 700; }
+
+.hero {
+  background: linear-gradient(145deg, #1a5c38, #2d8a4e, #3da866);
+  padding: 28px 20px; text-align: center; color: #fff;
+}
+.hero-icon { font-size: 32px; margin-bottom: 8px; }
+.hero-title { font-size: 13px; opacity: 0.9; margin-bottom: 12px; }
+.hero-box {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px; padding: 16px 22px; display: inline-block; min-width: 170px;
+}
+.hero-num { font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: -2px; }
+.hero-num span { font-size: 17px; font-weight: 500; letter-spacing: 0; }
+.hero-label { font-size: 11px; opacity: 0.8; margin-top: 3px; }
+.hero-sub { font-size: 11px; opacity: 0.75; margin-top: 8px; }
+
+.content { padding: 16px; }
+
+.booking-btn {
+  display: block; width: 100%; padding: 14px; margin-bottom: 16px;
+  background: #2d8a4e; color: #fff; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 700; cursor: pointer; text-align: center;
+  text-decoration: none;
+}
+
+.section-label {
+  font-size: 12px; font-weight: 600; color: #8fa89b;
+  margin-bottom: 10px; padding-left: 2px;
+}
+
+.completed-item {
+  background: #fff; border-radius: 10px; padding: 14px;
+  margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.completed-header {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.completed-left { display: flex; align-items: center; gap: 8px; }
+.completed-number {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #2d8a4e; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+.completed-title { font-size: 14px; font-weight: 600; }
+.completed-date { font-size: 12px; color: #8fa89b; }
+
+.video-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px; background: #e8f5ee; border-radius: 8px;
+  text-decoration: none; color: #1a2e23; margin-top: 8px;
+}
+.video-thumb {
+  width: 64px; height: 36px; border-radius: 4px; background: #111;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.video-play {
+  width: 0; height: 0;
+  border-top: 7px solid transparent; border-bottom: 7px solid transparent;
+  border-left: 11px solid rgba(255,255,255,0.85); margin-left: 2px;
+}
+.video-label { font-size: 12px; font-weight: 500; }
+.video-sub { font-size: 10px; color: #8fa89b; margin-top: 1px; }
+
+.remaining-item {
+  background: #fff; border-radius: 10px; padding: 14px;
+  margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); opacity: 0.5;
+}
+.remaining-left { display: flex; align-items: center; gap: 8px; }
+.remaining-number {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #e2ebe6; color: #8fa89b;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
+.remaining-label { font-size: 14px; color: #8fa89b; }
+
+.footer { text-align: center; font-size: 10px; color: #8fa89b; padding: 24px 0; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="page-header">
+    <a class="back-btn" id="backBtn">&larr; 戻る</a>
+    <span class="page-title">お片付けSession</span>
+  </div>
+  <div class="hero">
+    <div class="hero-icon">&#128466;</div>
+    <div class="hero-title" id="heroTitle">お片付けSession</div>
+    <div class="hero-box">
+      <div class="hero-num" id="heroNum">-<span>回</span></div>
+      <div class="hero-label">残りセッション</div>
+    </div>
+    <div class="hero-sub" id="heroSub"></div>
+  </div>
+  <div class="content">
+    <div id="bookingArea"></div>
+    <div id="sessionList"><div style="text-align:center; padding:20px; color:#8fa89b;">読み込み中...</div></div>
+  </div>
+  <div class="footer">Session Manager</div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const token = params.get('t');
+if (!token) location.href = '/';
+
+document.getElementById('backBtn').href = '/my/?t=' + encodeURIComponent(token);
+
+async function load() {
+  try {
+    const [cleanupRes, settingsRes] = await Promise.all([
+      fetch('/api/cleanup?token=' + encodeURIComponent(token)),
+      fetch('/api/settings?key=cleanupSession')
+    ]);
+
+    if (!cleanupRes.ok) {
+      document.getElementById('sessionList').innerHTML = '<div style="text-align:center; padding:20px; color:#8fa89b;">このサービスはご利用いただけません</div>';
+      return;
+    }
+
+    const data = await cleanupRes.json();
+    const settings = settingsRes.ok ? await settingsRes.json() : {};
+    render(data, settings);
+  } catch (e) {
+    document.getElementById('sessionList').innerHTML = '<div style="text-align:center; padding:20px; color:#8fa89b;">接続エラー</div>';
+  }
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function render(data, settings) {
+  const total = data.total || 4;
+  const completed = data.completed || [];
+  const remaining = total - completed.length;
+
+  if (settings.title) {
+    document.getElementById('heroTitle').textContent = settings.title;
+    document.querySelector('.page-title').textContent = settings.title;
+  }
+
+  document.getElementById('heroNum').innerHTML = remaining + '<span>回</span>';
+  document.getElementById('heroSub').textContent = '全' + total + '回中 ' + completed.length + '回完了';
+
+  const bookingArea = document.getElementById('bookingArea');
+  if (remaining > 0 && settings.url) {
+    bookingArea.innerHTML = '<a class="booking-btn" href="' + esc(settings.url) + '" target="_blank">予約する</a>';
+  } else if (remaining <= 0) {
+    bookingArea.innerHTML = '<div style="text-align:center; padding:12px; background:#e8f5ee; border-radius:10px; margin-bottom:16px; font-size:13px; color:#2d8a4e; font-weight:600;">全セッション完了</div>';
+  }
+
+  let html = '';
+
+  if (completed.length > 0) {
+    html += '<div class="section-label">完了したセッション</div>';
+    for (const s of completed) {
+      html += '<div class="completed-item">';
+      html += '<div class="completed-header">';
+      html += '<div class="completed-left"><span class="completed-number">' + s.number + '</span><span class="completed-title">第' + s.number + '回</span></div>';
+      html += '<span class="completed-date">' + esc(s.date) + '</span>';
+      html += '</div>';
+      if (s.videoUrl) {
+        html += '<a class="video-link" href="' + esc(s.videoUrl) + '" target="_blank">';
+        html += '<div class="video-thumb"><div class="video-play"></div></div>';
+        html += '<div><div class="video-label">セッション動画を見る</div><div class="video-sub">タップしてYouTubeで再生</div></div>';
+        html += '</a>';
+      }
+      html += '</div>';
+    }
+  }
+
+  if (remaining > 0) {
+    html += '<div class="section-label" style="margin-top:16px;">今後のセッション</div>';
+    for (let i = completed.length + 1; i <= total; i++) {
+      html += '<div class="remaining-item"><div class="remaining-left"><span class="remaining-number">' + i + '</span><span class="remaining-label">第' + i + '回</span></div></div>';
+    }
+  }
+
+  document.getElementById('sessionList').innerHTML = html;
+}
+
+load();
+</script>
+</body>
+</html>

@@ -101,7 +101,12 @@ async function loadMyPage() {
     const timelogData = timelogRes.ok ? await timelogRes.json() : { status: 'none' };
     const archiveRes = await fetch(API + '/archives?token=' + encodeURIComponent(token));
     const archives = archiveRes.ok ? await archiveRes.json() : [];
-    render(client, audioLink);
+    let cleanupAvailable = false;
+    try {
+      const cleanupRes = await fetch(API + '/cleanup?token=' + encodeURIComponent(token));
+      cleanupAvailable = cleanupRes.ok;
+    } catch (e) {}
+    render(client, audioLink, cleanupAvailable);
     renderTimelog(timelogData);
     renderArchives(archives);
   } catch (e) {
@@ -115,7 +120,7 @@ function esc(s) {
   return d.innerHTML;
 }
 
-function render(c, audioLink) {
+function render(c, audioLink, cleanupAvailable) {
   const r = c.totalSessions - c.sessions.length;
   const done = c.sessions.length;
   const pct = c.totalSessions > 0 ? Math.round((done / c.totalSessions) * 100) : 0;
@@ -151,9 +156,19 @@ function render(c, audioLink) {
 
   if (c.sheetUrl) {
     html += `
-      <a href="${esc(c.sheetUrl)}" target="_blank" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
+      <a href="${esc(c.sheetUrl)}" target="_blank" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
         <div style="font-size:24px; margin-bottom:6px;">&#128203;</div>
         <div style="font-size:14px; font-weight:600; color:#2d8a4e;">あなたの資料を見る</div>
+        <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
+      </a>
+    `;
+  }
+
+  if (cleanupAvailable) {
+    html += `
+      <a href="/my/cleanup.html?t=${encodeURIComponent(token)}" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center; border:2px solid #2d8a4e;">
+        <div style="font-size:24px; margin-bottom:6px;">&#128466;</div>
+        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">お片付けSession</div>
         <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
       </a>
     `;

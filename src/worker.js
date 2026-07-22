@@ -49,6 +49,8 @@ async function handleAPI(url, request, env) {
       res = await handleExport(request, env);
     } else if (path === "/api/errors") {
       res = await handleErrors(url, request, method, env);
+    } else if (path === "/api/cleanup") {
+      res = await handleCleanup(url, request, method, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -630,6 +632,88 @@ async function handleErrors(url, request, method, env) {
       await env.SESSION_KV.put("system:errorLogs", JSON.stringify([]));
       return Response.json({ ok: true });
     }
+  }
+
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
+}
+
+async function handleCleanup(url, request, method, env) {
+  if (method === "GET") {
+    const clientToken = url.searchParams.get("token");
+    const clientId = url.searchParams.get("clientId");
+
+    if (clientToken) {
+      const id = await env.SESSION_KV.get("token:" + clientToken);
+      if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      const client = await env.SESSION_KV.get("client:" + id, "json");
+      if (!client || !client.cleanupSessionEnabled) {
+        return Response.json({ error: "not_available" }, { status: 403 });
+      }
+      const data = await env.SESSION_KV.get("cleanup:" + id, "json");
+      return Response.json(data || { total: 4, completed: [] });
+    }
+
+    if (clientId) {
+      if (!(await verifyAdmin(request, env))) {
+        return Response.json({ error: "unauthorized" }, { status: 401 });
+      }
+      const data = await env.SESSION_KV.get("cleanup:" + clientId, "json");
+      return Response.json(data || { total: 4, completed: [] });
+    }
+
+    return Response.json({ error: "missing_params" }, { status: 400 });
+  }
+
+  if (method === "POST") {
+    if (!(await verifyAdmin(request, env))) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const body = await request.json();
+    const action = body.action;
+
+    if (action === "toggle") {
+      const client = await env.SESSION_KV.get("client:" + body.clientId, "json");
+      if (!client) return Response.json({ error: "not_found" }, { status: 404 });
+      client.cleanupSessionEnabled = !!body.enabled;
+      await env.SESSION_KV.put("client:" + body.clientId, JSON.stringify(client));
+      return Response.json({ ok: true });
+    }
+
+    if (action === "complete") {
+      const data = await env.SESSION_KV.get("cleanup:" + body.clientId, "json") || { total: 4, completed: [] };
+      if (data.completed.length >= data.total) {
+        return Response.json({ error: "all_completed" }, { status: 400 });
+      }
+      data.completed.push({
+        number: data.completed.length + 1,
+        date: body.date || new Date().toISOString().split("T")[0].replace(/-/g, "."),
+        videoUrl: body.videoUrl || ""
+      });
+      await env.SESSION_KV.put("cleanup:" + body.clientId, JSON.stringify(data));
+      return Response.json(data);
+    }
+
+    if (action === "editSession") {
+      const data = await env.SESSION_KV.get("cleanup:" + body.clientId, "json");
+      if (!data) return Response.json({ error: "not_found" }, { status: 404 });
+      const session = data.completed.find(s => s.number === body.number);
+      if (!session) return Response.json({ error: "not_found" }, { status: 404 });
+      if (body.date) session.date = body.date;
+      if (body.videoUrl !== undefined) session.videoUrl = body.videoUrl;
+      await env.SESSION_KV.put("cleanup:" + body.clientId, JSON.stringify(data));
+      return Response.json(data);
+    }
+
+    if (action === "deleteSession") {
+      const data = await env.SESSION_KV.get("cleanup:" + body.clientId, "json");
+      if (!data) return Response.json({ error: "not_found" }, { status: 404 });
+      data.completed = data.completed.filter(s => s.number !== body.number);
+      data.completed.forEach((s, i) => s.number = i + 1);
+      await env.SESSION_KV.put("cleanup:" + body.clientId, JSON.stringify(data));
+      return Response.json(data);
+    }
+
+    return Response.json({ error: "invalid_action" }, { status: 400 });
   }
 
   return Response.json({ error: "method_not_allowed" }, { status: 405 });
