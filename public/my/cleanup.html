@@ -170,7 +170,13 @@ function render(data, settings) {
 
   const bookingArea = document.getElementById('bookingArea');
   if (remaining > 0 && settings.url) {
-    bookingArea.innerHTML = '<a class="booking-btn" href="' + esc(settings.url) + '" target="_blank">予約する</a>';
+    let btns = '<a class="booking-btn" href="' + esc(settings.url) + '" target="_blank">予約する</a>';
+    if (settings.applyUrl) {
+      btns += '<a href="' + esc(settings.applyUrl) + '" target="_blank" style="display:block; width:100%; padding:12px; margin-bottom:16px; margin-top:-8px; background:#fff; color:#2d8a4e; border:2px solid #2d8a4e; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; text-align:center; text-decoration:none;">申し込みフォーム</a>';
+    }
+    bookingArea.innerHTML = btns;
+  } else if (settings.applyUrl && remaining > 0) {
+    bookingArea.innerHTML = '<a href="' + esc(settings.applyUrl) + '" target="_blank" style="display:block; width:100%; padding:12px; margin-bottom:16px; background:#fff; color:#2d8a4e; border:2px solid #2d8a4e; border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; text-align:center; text-decoration:none;">申し込みフォーム</a>';
   } else if (remaining <= 0) {
     bookingArea.innerHTML = '<div style="text-align:center; padding:12px; background:#e8f5ee; border-radius:10px; margin-bottom:16px; font-size:13px; color:#2d8a4e; font-weight:600;">全セッション完了</div>';
   }
