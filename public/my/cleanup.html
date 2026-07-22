@@ -165,7 +165,7 @@ function render(data, settings) {
     document.querySelector('.page-title').textContent = settings.title;
   }
   if (settings.desc) {
-    document.getElementById('heroTitle').insertAdjacentHTML('afterend', '<div style="font-size:11px; opacity:0.85; margin-top:4px; line-height:1.5;">' + esc(settings.desc) + '</div>');
+    document.getElementById('heroTitle').insertAdjacentHTML('afterend', '<div style="font-size:11px; opacity:0.85; margin-top:4px; line-height:1.5; white-space:pre-wrap;">' + esc(settings.desc) + '</div>');
   }
 
   document.getElementById('heroNum').innerHTML = remaining + '<span>回</span>';
