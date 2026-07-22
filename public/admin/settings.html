@@ -55,10 +55,6 @@
         <input type="url" id="cleanupUrl" class="form-input" placeholder="https://...">
       </div>
       <div class="form-group">
-        <label class="form-label">申し込みフォームURL</label>
-        <input type="url" id="cleanupApplyUrl" class="form-input" placeholder="https://...">
-      </div>
-      <div class="form-group">
         <label class="form-label">表示タイトル（任意）</label>
         <input type="text" id="cleanupTitle" class="form-input" placeholder="お片付けSession" value="お片付けSession">
       </div>
@@ -429,7 +425,6 @@ async function loadCleanupSettings() {
     if (res.ok) {
       const data = await res.json();
       if (data.url) document.getElementById('cleanupUrl').value = data.url;
-      if (data.applyUrl) document.getElementById('cleanupApplyUrl').value = data.applyUrl;
       if (data.title) document.getElementById('cleanupTitle').value = data.title;
       if (data.desc) document.getElementById('cleanupDesc').value = data.desc;
     }
@@ -438,13 +433,12 @@ async function loadCleanupSettings() {
 
 async function saveCleanupSettings() {
   const url = document.getElementById('cleanupUrl').value.trim();
-  const applyUrl = document.getElementById('cleanupApplyUrl').value.trim();
   const title = document.getElementById('cleanupTitle').value.trim() || 'お片付けSession';
   const desc = document.getElementById('cleanupDesc').value.trim();
   await fetch(API + '/settings', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ key: 'cleanupSession', value: { url, applyUrl, title, desc } })
+    body: JSON.stringify({ key: 'cleanupSession', value: { url, title, desc } })
   });
   document.getElementById('cleanupStatus').textContent = '保存しました';
   setTimeout(() => document.getElementById('cleanupStatus').textContent = '', 2000);
