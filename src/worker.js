@@ -51,6 +51,8 @@ async function handleAPI(url, request, env) {
       res = await handleErrors(url, request, method, env);
     } else if (path === "/api/cleanup") {
       res = await handleCleanup(url, request, method, env);
+    } else if (path === "/api/patterns") {
+      res = await handlePatterns(url, request, method, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -589,12 +591,15 @@ async function handleExport(request, env) {
 
   const errorLogs = await env.SESSION_KV.get("system:errorLogs", "json") || [];
 
+  const behaviorChoices = await env.SESSION_KV.get("settings:behaviorChoices", "json") || null;
+
   const exportData = {
     exportedAt: new Date().toISOString(),
     clients,
     archives,
     audioLink,
-    errorLogs
+    errorLogs,
+    behaviorChoices
   };
 
   return Response.json(exportData);
@@ -632,6 +637,137 @@ async function handleErrors(url, request, method, env) {
       await env.SESSION_KV.put("system:errorLogs", JSON.stringify([]));
       return Response.json({ ok: true });
     }
+  }
+
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
+}
+
+async function handlePatterns(url, request, method, env) {
+  if (method === "GET") {
+    const clientToken = url.searchParams.get("token");
+    const clientId = url.searchParams.get("clientId");
+
+    if (clientToken) {
+      const id = await env.SESSION_KV.get("token:" + clientToken);
+      if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      const client = await env.SESSION_KV.get("client:" + id, "json");
+      if (!client || !client.behaviorPatternEnabled) {
+        return Response.json({ error: "not_available" }, { status: 403 });
+      }
+      const data = await env.SESSION_KV.get("patterns:" + id, "json");
+      return Response.json(data || []);
+    }
+
+    if (clientId) {
+      if (!(await verifyAdmin(request, env))) {
+        return Response.json({ error: "unauthorized" }, { status: 401 });
+      }
+      const data = await env.SESSION_KV.get("patterns:" + clientId, "json");
+      return Response.json(data || []);
+    }
+
+    return Response.json({ error: "missing_params" }, { status: 400 });
+  }
+
+  if (method === "POST") {
+    const body = await request.json();
+    const action = body.action;
+
+    if (action === "toggle") {
+      if (!(await verifyAdmin(request, env))) {
+        return Response.json({ error: "unauthorized" }, { status: 401 });
+      }
+      const client = await env.SESSION_KV.get("client:" + body.clientId, "json");
+      if (!client) return Response.json({ error: "not_found" }, { status: 404 });
+      client.behaviorPatternEnabled = !!body.enabled;
+      await env.SESSION_KV.put("client:" + body.clientId, JSON.stringify(client));
+      return Response.json({ ok: true });
+    }
+
+    if (action === "add") {
+      const clientToken = body.token;
+      const clientId = body.clientId;
+      let id;
+
+      if (clientToken) {
+        id = await env.SESSION_KV.get("token:" + clientToken);
+        if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+        const client = await env.SESSION_KV.get("client:" + id, "json");
+        if (!client || !client.behaviorPatternEnabled) {
+          return Response.json({ error: "not_available" }, { status: 403 });
+        }
+      } else if (clientId) {
+        if (!(await verifyAdmin(request, env))) {
+          return Response.json({ error: "unauthorized" }, { status: 401 });
+        }
+        id = clientId;
+      } else {
+        return Response.json({ error: "missing_params" }, { status: 400 });
+      }
+
+      const data = await env.SESSION_KV.get("patterns:" + id, "json") || [];
+      data.push({
+        id: crypto.randomUUID().slice(0, 8),
+        situation: body.situation,
+        action: body.actionText,
+        memo: body.memo || "",
+        createdAt: new Date().toISOString()
+      });
+      await env.SESSION_KV.put("patterns:" + id, JSON.stringify(data));
+      return Response.json(data);
+    }
+
+    if (action === "edit") {
+      const clientToken = body.token;
+      const clientId = body.clientId;
+      let id;
+
+      if (clientToken) {
+        id = await env.SESSION_KV.get("token:" + clientToken);
+        if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      } else if (clientId) {
+        if (!(await verifyAdmin(request, env))) {
+          return Response.json({ error: "unauthorized" }, { status: 401 });
+        }
+        id = clientId;
+      } else {
+        return Response.json({ error: "missing_params" }, { status: 400 });
+      }
+
+      const data = await env.SESSION_KV.get("patterns:" + id, "json") || [];
+      const item = data.find(p => p.id === body.patternId);
+      if (!item) return Response.json({ error: "not_found" }, { status: 404 });
+      if (body.situation !== undefined) item.situation = body.situation;
+      if (body.actionText !== undefined) item.action = body.actionText;
+      if (body.memo !== undefined) item.memo = body.memo;
+      await env.SESSION_KV.put("patterns:" + id, JSON.stringify(data));
+      return Response.json(data);
+    }
+
+    if (action === "delete") {
+      const clientToken = body.token;
+      const clientId = body.clientId;
+      let id;
+
+      if (clientToken) {
+        id = await env.SESSION_KV.get("token:" + clientToken);
+        if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      } else if (clientId) {
+        if (!(await verifyAdmin(request, env))) {
+          return Response.json({ error: "unauthorized" }, { status: 401 });
+        }
+        id = clientId;
+      } else {
+        return Response.json({ error: "missing_params" }, { status: 400 });
+      }
+
+      let data = await env.SESSION_KV.get("patterns:" + id, "json") || [];
+      data = data.filter(p => p.id !== body.patternId);
+      await env.SESSION_KV.put("patterns:" + id, JSON.stringify(data));
+      return Response.json(data);
+    }
+
+    return Response.json({ error: "invalid_action" }, { status: 400 });
   }
 
   return Response.json({ error: "method_not_allowed" }, { status: 405 });

@@ -72,6 +72,31 @@
   </div>
 
   <div class="card mt-16">
+    <div class="card-header">行動パターン 選択肢管理</div>
+    <div class="card-body">
+      <p class="text-sm text-muted mb-8">クライアントが選択できるシチュエーションとアクションの選択肢を管理します。クライアントは「その他（自由入力）」も選択できます。</p>
+      <div style="margin-bottom:16px;">
+        <div class="form-label">シチュエーション</div>
+        <div id="situationChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="newSituation" class="form-input" placeholder="例：電車移動" style="flex:1;">
+          <button class="btn btn-outline" onclick="addChoice('situation')">追加</button>
+        </div>
+      </div>
+      <div>
+        <div class="form-label">アクション</div>
+        <div id="actionChips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="newAction" class="form-input" placeholder="例：読書" style="flex:1;">
+          <button class="btn btn-outline" onclick="addChoice('action')">追加</button>
+        </div>
+      </div>
+      <button class="btn btn-primary mt-12" onclick="saveBehaviorChoices()">選択肢を保存</button>
+      <div id="behaviorStatus" class="text-sm text-muted mt-8"></div>
+    </div>
+  </div>
+
+  <div class="card mt-16">
     <div class="card-header flex justify-between items-center">
       <span>シェア会アーカイブ管理</span>
       <button class="header-action" onclick="toggleArchiveAdd()">+ 追加</button>
@@ -422,6 +447,64 @@ async function deleteArchive(id) {
 loadExportKey();
 loadErrorLogs();
 loadCleanupSettings();
+loadBehaviorChoices();
+
+let behaviorData = { situations: [], actions: [] };
+
+async function loadBehaviorChoices() {
+  try {
+    const res = await fetch(API + '/settings?key=behaviorChoices', { headers: headers() });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.situations) behaviorData.situations = data.situations;
+      if (data.actions) behaviorData.actions = data.actions;
+    }
+  } catch (e) {}
+  renderBehaviorChips();
+}
+
+function renderBehaviorChips() {
+  const sitEl = document.getElementById('situationChips');
+  const actEl = document.getElementById('actionChips');
+  sitEl.innerHTML = behaviorData.situations.map(s =>
+    '<span style="display:inline-flex; align-items:center; gap:4px; background:#ede9fe; color:#5b21b6; padding:5px 10px; border-radius:16px; font-size:12px; font-weight:500;">' + esc(s) + '<span onclick="removeChoice(\'situation\',\'' + esc(s).replace(/'/g, "\\'") + '\')" style="cursor:pointer; margin-left:2px; font-size:14px; line-height:1;">&times;</span></span>'
+  ).join('');
+  actEl.innerHTML = behaviorData.actions.map(a =>
+    '<span style="display:inline-flex; align-items:center; gap:4px; background:#fef3c7; color:#92400e; padding:5px 10px; border-radius:16px; font-size:12px; font-weight:500;">' + esc(a) + '<span onclick="removeChoice(\'action\',\'' + esc(a).replace(/'/g, "\\'") + '\')" style="cursor:pointer; margin-left:2px; font-size:14px; line-height:1;">&times;</span></span>'
+  ).join('');
+}
+
+function addChoice(type) {
+  const input = document.getElementById(type === 'situation' ? 'newSituation' : 'newAction');
+  const val = input.value.trim();
+  if (!val) return;
+  if (type === 'situation') {
+    if (!behaviorData.situations.includes(val)) behaviorData.situations.push(val);
+  } else {
+    if (!behaviorData.actions.includes(val)) behaviorData.actions.push(val);
+  }
+  input.value = '';
+  renderBehaviorChips();
+}
+
+function removeChoice(type, val) {
+  if (type === 'situation') {
+    behaviorData.situations = behaviorData.situations.filter(s => s !== val);
+  } else {
+    behaviorData.actions = behaviorData.actions.filter(a => a !== val);
+  }
+  renderBehaviorChips();
+}
+
+async function saveBehaviorChoices() {
+  await fetch(API + '/settings', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ key: 'behaviorChoices', value: behaviorData })
+  });
+  document.getElementById('behaviorStatus').textContent = '保存しました';
+  setTimeout(() => document.getElementById('behaviorStatus').textContent = '', 2000);
+}
 
 async function loadCleanupSettings() {
   try {

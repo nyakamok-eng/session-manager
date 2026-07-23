@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>行動のパターン化</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Noto Sans JP', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+  background: #f5f3ff; color: #1a2e23;
+  -webkit-font-smoothing: antialiased;
+}
+.frame { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+.page-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px; border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+.back-btn { font-size: 14px; color: #7c3aed; text-decoration: none; font-weight: 500; }
+.page-title { font-size: 16px; font-weight: 700; }
+
+.hero {
+  background: linear-gradient(145deg, #5b21b6, #7c3aed, #8b5cf6);
+  padding: 24px 20px; text-align: center; color: #fff;
+}
+.hero-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.hero-sub { font-size: 11px; opacity: 0.85; line-height: 1.5; }
+
+.content { padding: 16px; }
+
+.add-form {
+  background: #fff; border-radius: 12px; padding: 16px;
+  margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.form-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #5b21b6; }
+.form-label { font-size: 11px; font-weight: 600; color: #666; margin-bottom: 6px; display: block; }
+
+.choices {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+}
+.choice-chip {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 1.5px solid transparent; cursor: pointer; transition: all 0.15s;
+}
+.choice-chip.situation { background: #ede9fe; color: #5b21b6; border-color: #ede9fe; }
+.choice-chip.situation.selected { border-color: #7c3aed; background: #ddd6fe; }
+.choice-chip.action { background: #fef3c7; color: #92400e; border-color: #fef3c7; }
+.choice-chip.action.selected { border-color: #d97706; background: #fde68a; }
+.choice-chip.other { background: #f3f4f6; color: #666; border-color: #f3f4f6; }
+.choice-chip.other.selected { border-color: #9ca3af; background: #e5e7eb; }
+
+.custom-input {
+  width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 13px; margin-bottom: 8px; display: none;
+}
+.custom-input.visible { display: block; }
+
+.memo-input {
+  width: 100%; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 13px; resize: vertical; min-height: 40px;
+}
+
+.save-btn {
+  width: 100%; padding: 12px; background: #7c3aed; color: #fff; border: none;
+  border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+  margin-top: 12px;
+}
+.save-btn:disabled { opacity: 0.5; cursor: default; }
+
+.section-label {
+  font-size: 12px; font-weight: 600; color: #8b5cf6;
+  margin-bottom: 10px; padding-left: 2px;
+}
+
+.pattern-item {
+  background: #fff; border-radius: 10px; padding: 12px 14px;
+  margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.pattern-chips {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+}
+.pattern-sit {
+  background: #ede9fe; color: #5b21b6; font-size: 12px; font-weight: 500;
+  padding: 4px 12px; border-radius: 14px;
+}
+.pattern-act {
+  background: #fef3c7; color: #92400e; font-size: 12px; font-weight: 500;
+  padding: 4px 12px; border-radius: 14px;
+}
+.pattern-x { font-size: 10px; color: #ccc; }
+.pattern-memo { font-size: 11px; color: #888; margin-top: 6px; }
+.pattern-actions {
+  display: flex; gap: 8px; margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+.pattern-actions button {
+  flex: 1; padding: 6px; border-radius: 6px; font-size: 11px;
+  font-weight: 500; cursor: pointer; border: 1px solid;
+}
+.btn-edit { background: #fff; border-color: #7c3aed; color: #7c3aed; }
+.btn-del { background: #fff; border-color: #e53e3e; color: #e53e3e; }
+
+.empty { text-align: center; padding: 24px; color: #a78bfa; font-size: 13px; }
+.footer { text-align: center; font-size: 10px; color: #a78bfa; padding: 24px 0; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="page-header">
+    <a class="back-btn" id="backBtn">&larr; 戻る</a>
+    <span class="page-title">行動のパターン化</span>
+  </div>
+  <div class="hero">
+    <div class="hero-title">シチュエーション x アクション</div>
+    <div class="hero-sub">いつもの場面に、いつものアクションを紐づけて<br>行動を習慣化しましょう</div>
+  </div>
+  <div class="content">
+    <div class="add-form" id="addForm">
+      <div class="form-title" id="formTitle">パターンを追加</div>
+
+      <div class="form-label">シチュエーション</div>
+      <div class="choices" id="sitChoices"></div>
+      <input type="text" class="custom-input" id="sitCustom" placeholder="シチュエーションを入力">
+
+      <div class="form-label" style="margin-top:8px;">アクション</div>
+      <div class="choices" id="actChoices"></div>
+      <input type="text" class="custom-input" id="actCustom" placeholder="アクションを入力">
+
+      <div class="form-label" style="margin-top:8px;">メモ（任意）</div>
+      <textarea class="memo-input" id="memoInput" placeholder="例：通勤の30分を活用"></textarea>
+
+      <button class="save-btn" id="saveBtn" onclick="savePattern()">追加する</button>
+      <button id="cancelEditBtn" onclick="cancelEdit()" style="display:none; width:100%; padding:10px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; font-size:13px; color:#666; cursor:pointer; margin-top:8px;">キャンセル</button>
+    </div>
+
+    <div id="patternList"><div class="empty">読み込み中...</div></div>
+  </div>
+  <div class="footer">Session Manager</div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const token = params.get('t');
+if (!token) location.href = '/';
+
+document.getElementById('backBtn').href = '/my/?t=' + encodeURIComponent(token);
+
+let choices = { situations: [], actions: [] };
+let patterns = [];
+let selectedSit = null;
+let selectedAct = null;
+let editingId = null;
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+async function init() {
+  const [choicesRes, patternsRes] = await Promise.all([
+    fetch('/api/settings?key=behaviorChoices'),
+    fetch('/api/patterns?token=' + encodeURIComponent(token))
+  ]);
+
+  if (choicesRes.ok) {
+    const data = await choicesRes.json();
+    if (data.situations) choices.situations = data.situations;
+    if (data.actions) choices.actions = data.actions;
+  }
+
+  if (patternsRes.ok) {
+    patterns = await patternsRes.json();
+  } else {
+    document.getElementById('patternList').innerHTML = '<div class="empty">この機能はご利用いただけません</div>';
+    document.getElementById('addForm').style.display = 'none';
+    return;
+  }
+
+  renderChoices();
+  renderPatterns();
+}
+
+function renderChoices() {
+  const sitEl = document.getElementById('sitChoices');
+  const actEl = document.getElementById('actChoices');
+
+  let sitHtml = '';
+  for (const s of choices.situations) {
+    const sel = selectedSit === s ? ' selected' : '';
+    sitHtml += '<span class="choice-chip situation' + sel + '" onclick="selectSit(\'' + esc(s).replace(/'/g, "\\'") + '\')">' + esc(s) + '</span>';
+  }
+  sitHtml += '<span class="choice-chip other' + (selectedSit === '__custom__' ? ' selected' : '') + '" onclick="selectSit(\'__custom__\')">その他</span>';
+  sitEl.innerHTML = sitHtml;
+
+  let actHtml = '';
+  for (const a of choices.actions) {
+    const sel = selectedAct === a ? ' selected' : '';
+    actHtml += '<span class="choice-chip action' + sel + '" onclick="selectAct(\'' + esc(a).replace(/'/g, "\\'") + '\')">' + esc(a) + '</span>';
+  }
+  actHtml += '<span class="choice-chip other' + (selectedAct === '__custom__' ? ' selected' : '') + '" onclick="selectAct(\'__custom__\')">その他</span>';
+  actEl.innerHTML = actHtml;
+
+  document.getElementById('sitCustom').classList.toggle('visible', selectedSit === '__custom__');
+  document.getElementById('actCustom').classList.toggle('visible', selectedAct === '__custom__');
+}
+
+function selectSit(val) {
+  selectedSit = selectedSit === val ? null : val;
+  if (val !== '__custom__') document.getElementById('sitCustom').value = '';
+  renderChoices();
+}
+
+function selectAct(val) {
+  selectedAct = selectedAct === val ? null : val;
+  if (val !== '__custom__') document.getElementById('actCustom').value = '';
+  renderChoices();
+}
+
+function getSitValue() {
+  if (selectedSit === '__custom__') return document.getElementById('sitCustom').value.trim();
+  return selectedSit;
+}
+
+function getActValue() {
+  if (selectedAct === '__custom__') return document.getElementById('actCustom').value.trim();
+  return selectedAct;
+}
+
+async function savePattern() {
+  const sit = getSitValue();
+  const act = getActValue();
+  if (!sit || !act) { alert('シチュエーションとアクションを選択してください'); return; }
+
+  const memo = document.getElementById('memoInput').value.trim();
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+
+  const body = {
+    token,
+    situation: sit,
+    actionText: act,
+    memo
+  };
+
+  if (editingId) {
+    body.action = 'edit';
+    body.patternId = editingId;
+  } else {
+    body.action = 'add';
+  }
+
+  const res = await fetch('/api/patterns', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (res.ok) {
+    patterns = await res.json();
+    cancelEdit();
+    renderPatterns();
+  }
+  btn.disabled = false;
+}
+
+function renderPatterns() {
+  const el = document.getElementById('patternList');
+  if (patterns.length === 0) {
+    el.innerHTML = '<div class="empty">まだパターンがありません<br>上のフォームから追加してみましょう</div>';
+    return;
+  }
+
+  let html = '<div class="section-label">登録済みパターン（' + patterns.length + '件）</div>';
+  for (const p of patterns) {
+    html += '<div class="pattern-item">';
+    html += '<div class="pattern-chips">';
+    html += '<span class="pattern-sit">' + esc(p.situation) + '</span>';
+    html += '<span class="pattern-x">x</span>';
+    html += '<span class="pattern-act">' + esc(p.action) + '</span>';
+    html += '</div>';
+    if (p.memo) {
+      html += '<div class="pattern-memo">' + esc(p.memo) + '</div>';
+    }
+    html += '<div class="pattern-actions">';
+    html += '<button class="btn-edit" onclick="startEdit(\'' + p.id + '\')">編集</button>';
+    html += '<button class="btn-del" onclick="deletePattern(\'' + p.id + '\')">削除</button>';
+    html += '</div>';
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+function startEdit(id) {
+  const p = patterns.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+
+  if (choices.situations.includes(p.situation)) {
+    selectedSit = p.situation;
+    document.getElementById('sitCustom').value = '';
+  } else {
+    selectedSit = '__custom__';
+    document.getElementById('sitCustom').value = p.situation;
+  }
+
+  if (choices.actions.includes(p.action)) {
+    selectedAct = p.action;
+    document.getElementById('actCustom').value = '';
+  } else {
+    selectedAct = '__custom__';
+    document.getElementById('actCustom').value = p.action;
+  }
+
+  document.getElementById('memoInput').value = p.memo || '';
+  document.getElementById('formTitle').textContent = 'パターンを編集';
+  document.getElementById('saveBtn').textContent = '保存する';
+  document.getElementById('cancelEditBtn').style.display = 'block';
+  renderChoices();
+  document.getElementById('addForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  selectedSit = null;
+  selectedAct = null;
+  document.getElementById('sitCustom').value = '';
+  document.getElementById('actCustom').value = '';
+  document.getElementById('memoInput').value = '';
+  document.getElementById('formTitle').textContent = 'パターンを追加';
+  document.getElementById('saveBtn').textContent = '追加する';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  renderChoices();
+}
+
+async function deletePattern(id) {
+  if (!confirm('このパターンを削除しますか？')) return;
+  const res = await fetch('/api/patterns', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'delete', token, patternId: id })
+  });
+  if (res.ok) {
+    patterns = await res.json();
+    renderPatterns();
+  }
+}
+
+init();
+</script>
+</body>
+</html>

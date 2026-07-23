@@ -207,11 +207,14 @@ function render() {
 
   html += '<div id="cleanup-area" class="mt-16"></div>';
 
+  html += '<div id="pattern-area" class="mt-16"></div>';
+
   document.getElementById('content').innerHTML = html;
   document.title = client.name + ' - セッション管理';
   loadTimelog();
   loadArchiveAccess();
   loadCleanup();
+  loadPatterns();
 }
 
 async function completeSession() {
@@ -724,6 +727,66 @@ async function deleteCleanupSession(number) {
   });
   showToast('削除しました');
   loadCleanup();
+}
+
+async function loadPatterns() {
+  const area = document.getElementById('pattern-area');
+  if (!area) return;
+  try {
+    const res = await fetch(API + '/patterns?clientId=' + clientId, { headers: headers() });
+    const data = await res.json();
+    renderPatterns(data, area);
+  } catch (e) {}
+}
+
+function renderPatterns(patterns, area) {
+  const enabled = !!client.behaviorPatternEnabled;
+
+  let html = `
+    <div class="card">
+      <div class="card-header flex justify-between items-center">
+        <span>行動のパターン化</span>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <span style="font-size:11px; color:${enabled ? '#7c3aed' : '#999'};">${enabled ? '公開中' : '非公開'}</span>
+          <input type="checkbox" ${enabled ? 'checked' : ''} onchange="togglePattern(this.checked)" style="width:16px; height:16px; accent-color:#7c3aed;">
+        </label>
+      </div>
+      <div class="card-body">
+  `;
+
+  if (enabled) {
+    if (patterns.length === 0) {
+      html += '<div class="text-sm text-muted">まだパターンが登録されていません</div>';
+    } else {
+      html += '<div class="text-sm text-muted mb-8">' + patterns.length + '件のパターン</div>';
+      for (const p of patterns) {
+        html += `
+          <div style="display:flex; align-items:center; gap:6px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+            <span style="background:#ede9fe; color:#5b21b6; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:500;">${esc(p.situation)}</span>
+            <span style="font-size:11px; color:#999;">x</span>
+            <span style="background:#fef3c7; color:#92400e; padding:4px 10px; border-radius:12px; font-size:12px; font-weight:500;">${esc(p.action)}</span>
+            ${p.memo ? '<span class="text-sm text-muted" style="margin-left:auto;">' + esc(p.memo) + '</span>' : ''}
+          </div>
+        `;
+      }
+    }
+  } else {
+    html += '<div class="text-sm text-muted">公開にするとクライアントのマイページに表示されます</div>';
+  }
+
+  html += '</div></div>';
+  area.innerHTML = html;
+}
+
+async function togglePattern(enabled) {
+  await fetch(API + '/patterns', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'toggle', clientId: client.id, enabled })
+  });
+  client.behaviorPatternEnabled = enabled;
+  showToast(enabled ? '行動パターンを公開しました' : '非公開にしました');
+  loadPatterns();
 }
 
 document.getElementById('editModal').addEventListener('click', e => {

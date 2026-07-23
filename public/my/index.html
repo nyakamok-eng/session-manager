@@ -106,7 +106,13 @@ async function loadMyPage() {
       const cleanupRes = await fetch(API + '/cleanup?token=' + encodeURIComponent(token));
       cleanupAvailable = cleanupRes.ok;
     } catch (e) {}
-    render(client, audioLink, cleanupAvailable);
+    let patternData = null;
+    try {
+      const patternRes = await fetch(API + '/patterns?token=' + encodeURIComponent(token));
+      if (patternRes.ok) patternData = await patternRes.json();
+    } catch (e) {}
+    render(client, audioLink, cleanupAvailable, patternData);
+    if (patternData !== null) renderPatterns(patternData);
     renderTimelog(timelogData);
     renderArchives(archives);
   } catch (e) {
@@ -120,7 +126,7 @@ function esc(s) {
   return d.innerHTML;
 }
 
-function render(c, audioLink, cleanupAvailable) {
+function render(c, audioLink, cleanupAvailable, patternData) {
   const r = c.totalSessions - c.sessions.length;
   const done = c.sessions.length;
   const pct = c.totalSessions > 0 ? Math.round((done / c.totalSessions) * 100) : 0;
@@ -141,6 +147,10 @@ function render(c, audioLink, cleanupAvailable) {
 
     <div style="padding: 0 4px;">
   `;
+
+  if (patternData !== null) {
+    html += '<div id="pattern-area"></div>';
+  }
 
   html += '<div id="timelog-area"></div>';
 
@@ -491,6 +501,37 @@ function renderArchives(archives) {
       <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
     </a>
   `;
+}
+
+function renderPatterns(patterns) {
+  const area = document.getElementById('pattern-area');
+  if (!area) return;
+
+  let html = '<div style="background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">';
+  html += '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">';
+  html += '<div style="display:flex; align-items:center; gap:8px;">';
+  html += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>';
+  html += '<span style="font-size:15px; font-weight:700; color:#1a2e23;">行動のパターン化</span>';
+  html += '</div>';
+  html += '<span style="font-size:11px; color:#888;">' + patterns.length + '件</span>';
+  html += '</div>';
+
+  if (patterns.length > 0) {
+    html += '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">';
+    for (const p of patterns) {
+      html += '<div style="display:flex; align-items:center; border-radius:20px; overflow:hidden; border:1px solid #e2e8f0;">';
+      html += '<span style="background:#ede9fe; color:#5b21b6; font-size:11px; font-weight:500; padding:5px 10px;">' + esc(p.situation) + '</span>';
+      html += '<span style="font-size:10px; color:#ccc; padding:0 4px;">x</span>';
+      html += '<span style="background:#fef3c7; color:#92400e; font-size:11px; font-weight:500; padding:5px 10px;">' + esc(p.action) + '</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  html += '<a href="/my/patterns.html?t=' + encodeURIComponent(token) + '" style="display:block; width:100%; padding:10px; background:#7c3aed; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; text-align:center; text-decoration:none;">パターンを管理する</a>';
+  html += '</div>';
+
+  area.innerHTML = html;
 }
 </script>
 </body>
