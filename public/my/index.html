@@ -258,6 +258,97 @@ function renderTimelog(data) {
       </div>
   `;
 
+  html += `
+    <div style="border:1px solid #d1fae5; border-radius:8px; margin-bottom:12px; overflow:hidden;">
+      <div onclick="var b=document.getElementById('tl-example-body'); b.style.display=b.style.display==='none'?'block':'none'; document.getElementById('tl-ex-chev').style.transform=b.style.display==='none'?'rotate(0deg)':'rotate(180deg)';" style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:#ecfdf5; cursor:pointer;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2d8a4e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <span style="font-size:12px; font-weight:600; color:#065f46;">記入の参考例を見る</span>
+        </div>
+        <svg id="tl-ex-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2d8a4e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div id="tl-example-body" style="display:none;">
+        <div style="padding:10px 12px; border-top:1px solid #d1fae5;">
+          <div style="font-size:11px; font-weight:600; color:#2d8a4e; margin-bottom:6px;">例1 : 平日（フルスケジュール型）</div>
+          <div style="font-size:11px; color:#4a5568; line-height:1.7;">
+            <span style="color:#888;">5:30-6:15</span> 息子の朝の注入, 洗い物<br>
+            <span style="color:#888;">6:15-6:45</span> 放デイの準備<br>
+            <span style="color:#888;">6:45-7:00</span> ゴミ出し準備と洗濯回し<br>
+            <span style="color:#888;">7:00-8:00</span> LINE作成、朝支度、息子の浣腸<br>
+            <span style="color:#888;">8:15-8:30</span> 朝食<br>
+            <span style="color:#888;">8:30-8:45</span> 洗濯干し<br>
+            <span style="color:#888;">8:55-9:15</span> LINE（送信用スケジュール入力）<br>
+            <span style="color:#888;">9:15-9:35</span> 息子水分注入と準備<br>
+            <span style="color:#d97706; font-weight:500;">9:35-10:00 空白の25分...</span><br>
+            <span style="color:#888;">10:00-10:20</span> 荷物運び出し、放デイ送り出す<br>
+            <span style="color:#888;">10:40〜</span> アーカイブ視聴<br>
+            <span style="color:#888;">12:00-13:30</span> 昼食、娘とおしゃべり<br>
+            <span style="color:#888;">13:30-14:40</span> 残りのアーカイブ視聴<br>
+            <span style="color:#888;">14:40-15:00</span> 休憩<br>
+            <span style="color:#888;">15:00-15:20</span> 洗濯物を取り込んで片付ける<br>
+            <span style="color:#888;">15:20-16:20</span> 来月の放デイリクエスト送信、リスケ作業<br>
+            <span style="color:#888;">16:30-17:20</span> 息子送迎により帰宅、片づけと洗い物<br>
+            <span style="color:#888;">17:20-18:00</span> 夕飯作り<br>
+            <span style="color:#888;">18:00-18:45</span> 娘、息子お風呂<br>
+            <span style="color:#888;">18:45-20:00</span> 夕飯仕上げして食べる、途中で息子の注入も開始
+          </div>
+        </div>
+        <div style="padding:10px 12px; border-top:1px solid #d1fae5;">
+          <div style="font-size:11px; font-weight:600; color:#2d8a4e; margin-bottom:6px;">例2 : 休日（ゆるめ記録型）</div>
+          <div style="font-size:11px; color:#4a5568; line-height:1.7;">
+            <span style="color:#888;">6:30-7:00</span> 息子の朝の注入<br>
+            <span style="color:#888;">7:00-7:30</span> 朝食<br>
+            <span style="color:#888;">7:30-8:00</span> わたしの朝の身支度<br>
+            <span style="color:#888;">8:00-8:20</span> 洗濯回し、息子浣腸と朝の身支度<br>
+            <span style="color:#d97706; font-weight:500;">隙間時間（テレビ見てました）</span><br>
+            <span style="color:#888;">9:00頃〜</span> 洗濯干し（15分程度）<br>
+            <span style="color:#d97706; font-weight:500;">隙間時間（何もしていなかった時間）</span><br>
+            <span style="color:#888;">9:50</span> 息子の水分補給&洗い物<br>
+            <span style="color:#888;">10:00-12:00</span> グルコン参加<br>
+            <span style="color:#888;">12:00-13:00</span> 息子のお昼の注入と私のお昼ご飯<br>
+            <span style="color:#888;">13:00-14:00頃</span> 市役所に提出の書類（3種類作成）<br>
+            <span style="color:#888;">14:00頃-14:30</span> 溜まっていた書類の整理整頓<br>
+            <span style="color:#888;">14:30-15:30</span> お昼寝したりゴロゴロしていました<br>
+            <span style="color:#888;">15:30〜20分程度</span> 洗濯取り込んで畳んで片付ける<br>
+            <span style="color:#d97706; font-weight:500;">隙間時間（特に何もしてなかった）</span><br>
+            <span style="color:#888;">16:00〜</span> 娘が実家から帰宅、談話
+          </div>
+        </div>
+        <div style="padding:10px 12px; border-top:1px solid #d1fae5;">
+          <div style="font-size:11px; font-weight:600; color:#2d8a4e; margin-bottom:6px;">例3 : 外出あり（詳細型）</div>
+          <div style="font-size:11px; color:#4a5568; line-height:1.7;">
+            <span style="color:#888;">5:45-6:30</span> 息子の注入、洗い物<br>
+            <span style="color:#888;">6:30-6:50</span> LINE（送信用スケジュール入力）<br>
+            <span style="color:#888;">6:50-7:25</span> 放デイの準備と洗濯まわす<br>
+            <span style="color:#888;">7:30</span> 息子浣腸<br>
+            <span style="color:#888;">8:00</span> 娘と朝食<br>
+            <span style="color:#888;">8:30-8:50</span> 洗濯干し<br>
+            <span style="color:#888;">8:50-10:00</span> わたしの朝支度しながら娘の宿題アシスト<br>
+            <span style="color:#888;">10:00〜</span> 荷物車に積込、放デイに出発<br>
+            <span style="color:#888;">11:00-13:30</span> 市役所と買い出し<br>
+            <span style="color:#888;">13:30-14:30</span> 遅めの昼食<br>
+            <span style="color:#888;">14:30-15:15</span> 午後の休憩<br>
+            <span style="color:#888;">15:15-16:00</span> 娘とダラダラ<br>
+            <span style="color:#888;">16:00〜</span> LINEの返信<br>
+            <span style="color:#888;">16:45-17:30</span> 息子送迎により帰宅、片づけと洗い物<br>
+            <span style="color:#888;">17:30-18:00</span> 娘と息子お風呂<br>
+            <span style="color:#888;">18:00-19:15</span> 夕飯づくり<br>
+            <span style="color:#888;">19:15-20:00</span> 食べる<br>
+            <span style="color:#888;">20:15-20:30</span> 片づけ<br>
+            <span style="color:#888;">20:30-20:50</span> Duolingo<br>
+            <span style="color:#888;">20:50-21:10</span> 息子寝る前ケア<br>
+            <span style="color:#888;">21:10-22:00</span> 娘と布団でおしゃべり<br>
+            <span style="color:#888;">22:00〜</span> わたしの寝支度、旦那さん帰宅<br>
+            <span style="color:#888;">23:50</span> 注入終了、就寝
+          </div>
+        </div>
+        <div style="padding:8px 12px; background:#f0fdf4; font-size:10px; color:#065f46; line-height:1.5;">
+          ざっくりでOK! 「隙間時間」「空白の時間」もそのまま書いてみてください。完璧に書く必要はありません。
+        </div>
+      </div>
+    </div>
+  `;
+
   for (const entry of recorded) {
     html += `
       <div style="border:1px solid #e8f5ee; border-radius:8px; padding:12px; margin-bottom:8px; cursor:pointer;" onclick="this.querySelector('.tl-body').style.display = this.querySelector('.tl-body').style.display === 'none' ? 'block' : 'none'">
