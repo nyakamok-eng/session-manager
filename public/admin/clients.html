@@ -41,8 +41,18 @@
     <input type="text" id="search" class="form-input" placeholder="名前で検索..." oninput="filterClients()">
   </div>
 
-  <div id="clientList" class="card">
-    <div class="loading">読み込み中...</div>
+  <div class="card" style="overflow:hidden;">
+    <div style="display:flex; border-bottom:1px solid #e2e8f0;">
+      <div id="tabPasson" onclick="switchTab('passon')" class="plan-tab active" style="flex:1; padding:10px 0; text-align:center; font-size:13px; font-weight:600; cursor:pointer; border-bottom:2px solid var(--primary); color:var(--primary);">
+        Pass on. <span id="tabPassonCount" style="background:var(--primary-light); color:var(--primary); font-size:10px; padding:1px 6px; border-radius:8px;"></span>
+      </div>
+      <div id="tabOther" onclick="switchTab('other')" class="plan-tab" style="flex:1; padding:10px 0; text-align:center; font-size:13px; font-weight:600; cursor:pointer; border-bottom:2px solid transparent; color:#999;">
+        その他 <span id="tabOtherCount" style="background:#f0f0f0; color:#999; font-size:10px; padding:1px 6px; border-radius:8px;"></span>
+      </div>
+    </div>
+    <div id="clientList">
+      <div class="loading">読み込み中...</div>
+    </div>
   </div>
 
   <div class="mt-16">
@@ -87,6 +97,7 @@
 const API = '/api';
 const TOKEN = localStorage.getItem('admin_token');
 let allClients = [];
+let currentTab = 'passon';
 
 if (!TOKEN) location.href = '/admin/';
 
@@ -97,13 +108,18 @@ function headers() {
   };
 }
 
+function isPasson(c) {
+  return c.plan === '3か月';
+}
+
 async function loadClients() {
   try {
     const res = await fetch(API + '/clients', { headers: headers() });
     if (res.status === 401) { location.href = '/admin/'; return; }
     allClients = await res.json();
-    renderClients(allClients);
     updateStats(allClients);
+    updateTabCounts(allClients);
+    renderCurrentTab();
   } catch (e) {
     document.getElementById('clientList').innerHTML = '<div class="card-body text-muted">接続エラー</div>';
   }
@@ -118,6 +134,13 @@ function updateStats(clients) {
   document.getElementById('doneCount').textContent = clients.length - active;
 }
 
+function updateTabCounts(clients) {
+  const passon = clients.filter(c => isPasson(c));
+  const other = clients.filter(c => !isPasson(c));
+  document.getElementById('tabPassonCount').textContent = passon.length;
+  document.getElementById('tabOtherCount').textContent = other.length;
+}
+
 function remaining(c) {
   return c.totalSessions - c.sessions.length;
 }
@@ -129,10 +152,39 @@ function badgeHTML(c) {
   return '<span class="badge badge-active">残' + r + '回</span>';
 }
 
+function switchTab(tab) {
+  currentTab = tab;
+  const tabP = document.getElementById('tabPasson');
+  const tabO = document.getElementById('tabOther');
+  if (tab === 'passon') {
+    tabP.style.borderBottom = '2px solid var(--primary)';
+    tabP.style.color = 'var(--primary)';
+    tabO.style.borderBottom = '2px solid transparent';
+    tabO.style.color = '#999';
+  } else {
+    tabO.style.borderBottom = '2px solid var(--primary)';
+    tabO.style.color = 'var(--primary)';
+    tabP.style.borderBottom = '2px solid transparent';
+    tabP.style.color = '#999';
+  }
+  renderCurrentTab();
+}
+
+function renderCurrentTab() {
+  const q = document.getElementById('search').value.toLowerCase();
+  let filtered = allClients.filter(c => c.name.toLowerCase().includes(q));
+
+  if (currentTab === 'passon') {
+    renderClients(filtered.filter(c => isPasson(c)));
+  } else {
+    renderOtherClients(filtered.filter(c => !isPasson(c)));
+  }
+}
+
 function renderClients(clients) {
   const el = document.getElementById('clientList');
   if (clients.length === 0) {
-    el.innerHTML = '<div class="card-body text-muted text-center">クライアントがまだいません</div>';
+    el.innerHTML = '<div class="card-body text-muted text-center">クライアントがいません</div>';
     return;
   }
 
@@ -140,17 +192,48 @@ function renderClients(clients) {
     <div class="client-item" onclick="location.href='/admin/client.html?id=${c.id}'">
       <div>
         <div class="client-name">${esc(c.name)}</div>
-        <div class="client-plan">${esc(c.plan)} ${c.totalSessions}回 / &yen;${c.price.toLocaleString()}</div>
+        <div class="client-plan">${esc(c.plan)} / 全${c.totalSessions}回 / &yen;${c.price.toLocaleString()}</div>
+        ${c.expiryDate ? '<div style="font-size:10px; color:#999; margin-top:2px;">期限: ' + esc(c.expiryDate) + '</div>' : ''}
       </div>
       <div>${badgeHTML(c)}</div>
     </div>
   `).join('');
 }
 
+function renderOtherClients(clients) {
+  const el = document.getElementById('clientList');
+  if (clients.length === 0) {
+    el.innerHTML = '<div class="card-body text-muted text-center">クライアントがいません</div>';
+    return;
+  }
+
+  const groups = {};
+  for (const c of clients) {
+    const plan = c.plan || 'その他';
+    if (!groups[plan]) groups[plan] = [];
+    groups[plan].push(c);
+  }
+
+  let html = '';
+  for (const plan of Object.keys(groups)) {
+    html += '<div style="font-size:11px; font-weight:600; color:#999; padding:10px 16px 4px;">' + esc(plan) + '</div>';
+    for (const c of groups[plan]) {
+      html += `
+        <div class="client-item" onclick="location.href='/admin/client.html?id=${c.id}'">
+          <div>
+            <div class="client-name">${esc(c.name)}</div>
+            <div class="client-plan">${esc(c.plan)} / 全${c.totalSessions}回 / &yen;${c.price.toLocaleString()}</div>
+          </div>
+          <div>${badgeHTML(c)}</div>
+        </div>
+      `;
+    }
+  }
+  el.innerHTML = html;
+}
+
 function filterClients() {
-  const q = document.getElementById('search').value.toLowerCase();
-  const filtered = allClients.filter(c => c.name.toLowerCase().includes(q));
-  renderClients(filtered);
+  renderCurrentTab();
 }
 
 function openAddModal() { document.getElementById('addModal').classList.add('active'); }
