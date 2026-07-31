@@ -658,6 +658,7 @@ async function handleVideos(url, request, method, env) {
       const access = clientData.videoAccess || [];
       if (access.length === 0) return Response.json({ error: "not_available" }, { status: 403 });
       const permitted = videos.filter(v => access.includes(v.id));
+      permitted.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
       return Response.json(permitted);
     }
 
