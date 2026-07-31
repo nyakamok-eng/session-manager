@@ -124,6 +124,7 @@ async function loadVideos() {
       return;
     }
     const videos = await res.json();
+    videos.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     renderVideos(videos);
   } catch (e) {
     document.getElementById('videoList').innerHTML = '<div class="empty">接続エラー</div>';
