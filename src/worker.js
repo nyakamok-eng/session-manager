@@ -53,6 +53,8 @@ async function handleAPI(url, request, env) {
       res = await handleCleanup(url, request, method, env);
     } else if (path === "/api/patterns") {
       res = await handlePatterns(url, request, method, env);
+    } else if (path === "/api/videos") {
+      res = await handleVideos(url, request, method, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -592,6 +594,7 @@ async function handleExport(request, env) {
   const errorLogs = await env.SESSION_KV.get("system:errorLogs", "json") || [];
 
   const behaviorChoices = await env.SESSION_KV.get("settings:behaviorChoices", "json") || null;
+  const videoContents = await env.SESSION_KV.get("settings:videoContents", "json") || [];
 
   const exportData = {
     exportedAt: new Date().toISOString(),
@@ -599,7 +602,8 @@ async function handleExport(request, env) {
     archives,
     audioLink,
     errorLogs,
-    behaviorChoices
+    behaviorChoices,
+    videoContents
   };
 
   return Response.json(exportData);
@@ -637,6 +641,76 @@ async function handleErrors(url, request, method, env) {
       await env.SESSION_KV.put("system:errorLogs", JSON.stringify([]));
       return Response.json({ ok: true });
     }
+  }
+
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
+}
+
+async function handleVideos(url, request, method, env) {
+  if (method === "GET") {
+    const clientToken = url.searchParams.get("token");
+    if (clientToken) {
+      const clientId = await env.SESSION_KV.get("token:" + clientToken);
+      if (!clientId) return Response.json({ error: "not_found" }, { status: 404 });
+      const clientData = await env.SESSION_KV.get("client:" + clientId, "json");
+      if (!clientData) return Response.json({ error: "not_found" }, { status: 404 });
+      const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+      const access = clientData.videoAccess || [];
+      if (access.length === 0) return Response.json({ error: "not_available" }, { status: 403 });
+      const permitted = videos.filter(v => access.includes(v.id));
+      return Response.json(permitted);
+    }
+
+    if (!(await verifyAdmin(request, env))) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+    return Response.json(videos);
+  }
+
+  if (!(await verifyAdmin(request, env))) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (method === "POST") {
+    const body = await request.json();
+    const action = body.action;
+
+    if (action === "add") {
+      const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+      const id = crypto.randomUUID().slice(0, 8);
+      videos.unshift({ id, title: body.title, url: body.url, date: body.date || "" });
+      await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
+      return Response.json(videos);
+    }
+
+    if (action === "edit") {
+      const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+      const item = videos.find(v => v.id === body.id);
+      if (!item) return Response.json({ error: "not_found" }, { status: 404 });
+      if (body.title !== undefined) item.title = body.title;
+      if (body.url !== undefined) item.url = body.url;
+      if (body.date !== undefined) item.date = body.date;
+      await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
+      return Response.json(videos);
+    }
+
+    if (action === "delete") {
+      let videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+      videos = videos.filter(v => v.id !== body.id);
+      await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
+      return Response.json(videos);
+    }
+
+    if (action === "setAccess") {
+      const clientData = await env.SESSION_KV.get("client:" + body.clientId, "json");
+      if (!clientData) return Response.json({ error: "not_found" }, { status: 404 });
+      clientData.videoAccess = body.videoIds || [];
+      await env.SESSION_KV.put("client:" + body.clientId, JSON.stringify(clientData));
+      return Response.json({ ok: true });
+    }
+
+    return Response.json({ error: "invalid_action" }, { status: 400 });
   }
 
   return Response.json({ error: "method_not_allowed" }, { status: 405 });

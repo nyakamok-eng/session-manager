@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>動画コンテンツ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Noto Sans JP', 'Yu Gothic', 'Hiragino Sans', sans-serif;
+  background: #f0f5f1; color: #1a2e23;
+  -webkit-font-smoothing: antialiased;
+}
+.frame { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+.page-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px; border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+.back-btn { font-size: 14px; color: #2d8a4e; text-decoration: none; font-weight: 500; }
+.page-title { font-size: 16px; font-weight: 700; }
+
+.hero {
+  background: linear-gradient(145deg, #1a5c38, #2d8a4e, #38a169);
+  padding: 24px 20px; text-align: center; color: #fff;
+}
+.hero-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.hero-sub { font-size: 11px; opacity: 0.85; line-height: 1.5; }
+
+.content { padding: 16px; }
+
+.video-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.video-thumb {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  background: #000;
+  cursor: pointer;
+}
+.video-thumb img {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.play-overlay {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px; height: 56px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.play-overlay svg { margin-left: 3px; }
+.video-info { padding: 12px 14px; }
+.video-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.video-date { font-size: 11px; color: #888; }
+
+.empty {
+  text-align: center; padding: 60px 20px;
+  color: #999; font-size: 14px;
+}
+
+.loading {
+  text-align: center; padding: 60px 20px;
+  color: #999; font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="page-header">
+    <a class="back-btn" id="backLink" href="#">&larr; 戻る</a>
+    <div class="page-title">動画コンテンツ</div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-title">限定コンテンツ動画</div>
+    <div class="hero-sub">あなた専用に公開された動画コンテンツです</div>
+  </div>
+
+  <div class="content" id="videoList">
+    <div class="loading">読み込み中...</div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const params = new URLSearchParams(location.search);
+const token = params.get('t');
+
+document.getElementById('backLink').href = '/my/?t=' + encodeURIComponent(token);
+
+if (!token) {
+  document.getElementById('videoList').innerHTML = '<div class="empty">URLが正しくありません</div>';
+} else {
+  loadVideos();
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function getYouTubeId(url) {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+async function loadVideos() {
+  try {
+    const res = await fetch(API + '/videos?token=' + encodeURIComponent(token));
+    if (!res.ok) {
+      document.getElementById('videoList').innerHTML = '<div class="empty">動画コンテンツはありません</div>';
+      return;
+    }
+    const videos = await res.json();
+    renderVideos(videos);
+  } catch (e) {
+    document.getElementById('videoList').innerHTML = '<div class="empty">接続エラー</div>';
+  }
+}
+
+function renderVideos(videos) {
+  const el = document.getElementById('videoList');
+  if (!videos || videos.length === 0) {
+    el.innerHTML = '<div class="empty">動画コンテンツはありません</div>';
+    return;
+  }
+
+  el.innerHTML = videos.map(v => {
+    const ytId = getYouTubeId(v.url);
+    const thumbUrl = ytId ? 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg' : '';
+
+    return `
+      <div class="video-card">
+        <div class="video-thumb" onclick="window.open('${esc(v.url)}', '_blank')">
+          ${thumbUrl ? '<img src="' + esc(thumbUrl) + '" alt="">' : '<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:#222;display:flex;align-items:center;justify-content:center;color:#666;font-size:13px;">動画</div>'}
+          <div class="play-overlay">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        </div>
+        <div class="video-info">
+          <div class="video-title">${esc(v.title)}</div>
+          ${v.date ? '<div class="video-date">' + esc(v.date) + '</div>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+</script>
+</body>
+</html>

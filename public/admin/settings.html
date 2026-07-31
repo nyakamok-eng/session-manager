@@ -72,6 +72,35 @@
   </div>
 
   <div class="card mt-16">
+    <div class="card-header flex justify-between items-center">
+      <span>動画コンテンツ管理</span>
+      <button class="header-action" onclick="toggleVideoAdd()">+ 追加</button>
+    </div>
+    <div class="card-body">
+      <p class="text-sm text-muted mb-8">クライアントに公開する動画コンテンツを管理します。クライアントごとの公開設定はクライアント詳細ページで行います。</p>
+      <div id="videoAddForm" style="display:none; background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:12px;">
+        <div class="form-group">
+          <label class="form-label">タイトル</label>
+          <input type="text" id="videoTitle" class="form-input" placeholder="例：第1回セミナー動画">
+        </div>
+        <div class="form-group">
+          <label class="form-label">YouTube URL</label>
+          <input type="url" id="videoUrl" class="form-input" placeholder="https://youtu.be/...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">公開日</label>
+          <input type="date" id="videoDate" class="form-input">
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-outline" style="flex:1;" onclick="toggleVideoAdd()">キャンセル</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="addVideo()">追加</button>
+        </div>
+      </div>
+      <div id="videoList"></div>
+    </div>
+  </div>
+
+  <div class="card mt-16">
     <div class="card-header">行動パターン 選択肢管理</div>
     <div class="card-body">
       <p class="text-sm text-muted mb-8">クライアントが選択できるシチュエーションとアクションの選択肢を管理します。クライアントは「その他（自由入力）」も選択できます。</p>
@@ -448,6 +477,114 @@ loadExportKey();
 loadErrorLogs();
 loadCleanupSettings();
 loadBehaviorChoices();
+loadVideos();
+
+let allVideos = [];
+
+async function loadVideos() {
+  try {
+    const res = await fetch(API + '/videos', { headers: headers() });
+    const videos = await res.json();
+    allVideos = videos;
+    renderVideos(videos);
+  } catch (e) {}
+}
+
+function renderVideos(videos) {
+  const el = document.getElementById('videoList');
+  if (videos.length === 0) {
+    el.innerHTML = '<div class="text-sm text-muted">動画コンテンツがまだありません</div>';
+    return;
+  }
+  el.innerHTML = videos.map(v => `
+    <div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+      <div style="flex:1; min-width:0;">
+        <div style="font-size:13px; font-weight:500;">${esc(v.title)}</div>
+        <div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(v.url)}</div>
+      </div>
+      <div style="font-size:11px; color:#888; white-space:nowrap;">${esc(v.date)}</div>
+      <button class="header-action" onclick="editVideo('${v.id}')">編集</button>
+      <button class="header-action" style="color:#e53e3e;" onclick="deleteVideo('${v.id}')">削除</button>
+    </div>
+  `).join('');
+}
+
+function toggleVideoAdd() {
+  const form = document.getElementById('videoAddForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function addVideo() {
+  const title = document.getElementById('videoTitle').value.trim();
+  const url = document.getElementById('videoUrl').value.trim();
+  const dateVal = document.getElementById('videoDate').value;
+  if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
+  const date = dateVal ? dateVal.replace(/-/g, '.') : '';
+  await fetch(API + '/videos', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'add', title, url, date })
+  });
+  document.getElementById('videoTitle').value = '';
+  document.getElementById('videoUrl').value = '';
+  document.getElementById('videoDate').value = '';
+  toggleVideoAdd();
+  showToast('動画を追加しました');
+  loadVideos();
+}
+
+function editVideo(id) {
+  const v = allVideos.find(x => x.id === id);
+  if (!v) return;
+  const dateVal = v.date ? v.date.replace(/\./g, '-') : '';
+  const el = document.getElementById('videoList');
+  el.innerHTML = `
+    <div style="background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:8px;">
+      <div class="form-group">
+        <label class="form-label">タイトル</label>
+        <input type="text" id="editVideoTitle" class="form-input" value="${esc(v.title)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">YouTube URL</label>
+        <input type="url" id="editVideoUrl" class="form-input" value="${esc(v.url)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">公開日</label>
+        <input type="date" id="editVideoDate" class="form-input" value="${dateVal}">
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-outline" style="flex:1;" onclick="loadVideos()">キャンセル</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="saveVideoEdit('${id}')">保存</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveVideoEdit(id) {
+  const title = document.getElementById('editVideoTitle').value.trim();
+  const url = document.getElementById('editVideoUrl').value.trim();
+  const dateVal = document.getElementById('editVideoDate').value;
+  if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
+  const date = dateVal ? dateVal.replace(/-/g, '.') : '';
+  await fetch(API + '/videos', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'edit', id, title, url, date })
+  });
+  showToast('保存しました');
+  loadVideos();
+}
+
+async function deleteVideo(id) {
+  if (!confirm('この動画コンテンツを削除しますか？')) return;
+  await fetch(API + '/videos', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'delete', id })
+  });
+  showToast('削除しました');
+  loadVideos();
+}
 
 let behaviorData = { situations: [], actions: [] };
 

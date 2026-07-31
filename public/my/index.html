@@ -111,7 +111,12 @@ async function loadMyPage() {
       const patternRes = await fetch(API + '/patterns?token=' + encodeURIComponent(token));
       if (patternRes.ok) patternData = await patternRes.json();
     } catch (e) {}
-    render(client, audioLink, cleanupAvailable, patternData);
+    let videoData = null;
+    try {
+      const videoRes = await fetch(API + '/videos?token=' + encodeURIComponent(token));
+      if (videoRes.ok) videoData = await videoRes.json();
+    } catch (e) {}
+    render(client, audioLink, cleanupAvailable, patternData, videoData);
     if (patternData !== null) renderPatterns(patternData);
     renderTimelog(timelogData);
     renderArchives(archives);
@@ -126,7 +131,7 @@ function esc(s) {
   return d.innerHTML;
 }
 
-function render(c, audioLink, cleanupAvailable, patternData) {
+function render(c, audioLink, cleanupAvailable, patternData, videoData) {
   const r = c.totalSessions - c.sessions.length;
   const done = c.sessions.length;
   const pct = c.totalSessions > 0 ? Math.round((done / c.totalSessions) * 100) : 0;
@@ -147,6 +152,18 @@ function render(c, audioLink, cleanupAvailable, patternData) {
 
     <div style="padding: 0 4px;">
   `;
+
+  if (videoData && videoData.length > 0) {
+    html += `
+      <a href="/my/videos.html?t=${encodeURIComponent(token)}" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
+        <div style="font-size:24px; margin-bottom:6px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#cc0000" style="vertical-align:middle;"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0C.488 3.45.029 5.804 0 12c.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0C23.512 20.55 23.971 18.196 24 12c-.029-6.185-.484-8.549-4.385-8.816zM9 16V8l8 4-8 4z"/></svg>
+        </div>
+        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">動画コンテンツ</div>
+        <div style="font-size:11px; color:#888; margin-top:4px;">${videoData.length}本の動画</div>
+      </a>
+    `;
+  }
 
   if (patternData !== null) {
     html += '<div id="pattern-area"></div>';
@@ -174,6 +191,8 @@ function render(c, audioLink, cleanupAvailable, patternData) {
     `;
   }
 
+  html += '<div id="archive-area"></div>';
+
   if (cleanupAvailable) {
     html += `
       <a href="/my/cleanup.html?t=${encodeURIComponent(token)}" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center; border:2px solid #2d8a4e;">
@@ -183,8 +202,6 @@ function render(c, audioLink, cleanupAvailable, patternData) {
       </a>
     `;
   }
-
-  html += '<div id="archive-area"></div>';
 
   html += `
       <h2 style="font-size:15px; font-weight:700; margin-bottom:12px;">セッション履歴</h2>
