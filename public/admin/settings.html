@@ -91,6 +91,10 @@
           <label class="form-label">公開日</label>
           <input type="date" id="videoDate" class="form-input">
         </div>
+        <div class="form-group">
+          <label class="form-label">メモ（クライアントに表示）</label>
+          <textarea id="videoMemo" class="form-input" rows="2" placeholder="例：まずはこちらから見てください"></textarea>
+        </div>
         <div class="flex gap-8">
           <button class="btn btn-outline" style="flex:1;" onclick="toggleVideoAdd()">キャンセル</button>
           <button class="btn btn-primary" style="flex:1;" onclick="addVideo()">追加</button>
@@ -497,14 +501,17 @@ function renderVideos(videos) {
     return;
   }
   el.innerHTML = videos.map(v => `
-    <div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
-      <div style="flex:1; min-width:0;">
-        <div style="font-size:13px; font-weight:500;">${esc(v.title)}</div>
-        <div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(v.url)}</div>
+    <div style="padding:8px 0; border-bottom:1px solid #f0f0f0;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; font-weight:500;">${esc(v.title)}</div>
+          <div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(v.url)}</div>
+        </div>
+        <div style="font-size:11px; color:#888; white-space:nowrap;">${esc(v.date)}</div>
+        <button class="header-action" onclick="editVideo('${v.id}')">編集</button>
+        <button class="header-action" style="color:#e53e3e;" onclick="deleteVideo('${v.id}')">削除</button>
       </div>
-      <div style="font-size:11px; color:#888; white-space:nowrap;">${esc(v.date)}</div>
-      <button class="header-action" onclick="editVideo('${v.id}')">編集</button>
-      <button class="header-action" style="color:#e53e3e;" onclick="deleteVideo('${v.id}')">削除</button>
+      ${v.memo ? '<div style="font-size:11px; color:#2d8a4e; margin-top:4px; padding-left:2px;">' + esc(v.memo) + '</div>' : ''}
     </div>
   `).join('');
 }
@@ -520,14 +527,16 @@ async function addVideo() {
   const dateVal = document.getElementById('videoDate').value;
   if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
   const date = dateVal ? dateVal.replace(/-/g, '.') : '';
+  const memo = document.getElementById('videoMemo').value.trim();
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'add', title, url, date })
+    body: JSON.stringify({ action: 'add', title, url, date, memo })
   });
   document.getElementById('videoTitle').value = '';
   document.getElementById('videoUrl').value = '';
   document.getElementById('videoDate').value = '';
+  document.getElementById('videoMemo').value = '';
   toggleVideoAdd();
   showToast('動画を追加しました');
   loadVideos();
@@ -552,6 +561,10 @@ function editVideo(id) {
         <label class="form-label">公開日</label>
         <input type="date" id="editVideoDate" class="form-input" value="${dateVal}">
       </div>
+      <div class="form-group">
+        <label class="form-label">メモ（クライアントに表示）</label>
+        <textarea id="editVideoMemo" class="form-input" rows="2" placeholder="例：まずはこちらから見てください">${esc(v.memo || '')}</textarea>
+      </div>
       <div class="flex gap-8">
         <button class="btn btn-outline" style="flex:1;" onclick="loadVideos()">キャンセル</button>
         <button class="btn btn-primary" style="flex:1;" onclick="saveVideoEdit('${id}')">保存</button>
@@ -566,10 +579,11 @@ async function saveVideoEdit(id) {
   const dateVal = document.getElementById('editVideoDate').value;
   if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
   const date = dateVal ? dateVal.replace(/-/g, '.') : '';
+  const memo = document.getElementById('editVideoMemo').value.trim();
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'edit', id, title, url, date })
+    body: JSON.stringify({ action: 'edit', id, title, url, date, memo })
   });
   showToast('保存しました');
   loadVideos();

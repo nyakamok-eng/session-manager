@@ -680,7 +680,7 @@ async function handleVideos(url, request, method, env) {
     if (action === "add") {
       const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
       const id = crypto.randomUUID().slice(0, 8);
-      videos.unshift({ id, title: body.title, url: body.url, date: body.date || "" });
+      videos.unshift({ id, title: body.title, url: body.url, date: body.date || "", memo: body.memo || "" });
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
     }
@@ -692,6 +692,7 @@ async function handleVideos(url, request, method, env) {
       if (body.title !== undefined) item.title = body.title;
       if (body.url !== undefined) item.url = body.url;
       if (body.date !== undefined) item.date = body.date;
+      if (body.memo !== undefined) item.memo = body.memo;
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
     }

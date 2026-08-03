@@ -117,6 +117,7 @@ function renderVideos(videos) {
       <div class="video-meta">
         <div class="video-title">${esc(v.title)}</div>
         ${v.date ? '<div class="video-date">' + esc(v.date) + '</div>' : ''}
+        ${v.memo ? '<div style="font-size:12px; color:#2d8a4e; margin-top:4px; line-height:1.4;">' + esc(v.memo) + '</div>' : ''}
       </div>
       <div class="video-arrow">&rsaquo;</div>
     </a>
