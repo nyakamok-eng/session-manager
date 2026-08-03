@@ -21,54 +21,35 @@ body {
 .back-btn { font-size: 14px; color: #2d8a4e; text-decoration: none; font-weight: 500; }
 .page-title { font-size: 16px; font-weight: 700; }
 
-.hero {
-  background: linear-gradient(145deg, #1a5c38, #2d8a4e, #38a169);
-  padding: 24px 20px; text-align: center; color: #fff;
-}
-.hero-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-.hero-sub { font-size: 11px; opacity: 0.85; line-height: 1.5; }
-
 .content { padding: 16px; }
 
-.video-card {
+.video-item {
+  display: flex; align-items: center; gap: 12px;
   background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  text-decoration: none;
+  color: inherit;
 }
-.video-thumb {
-  position: relative;
-  width: 100%;
-  padding-top: 56.25%;
-  background: #000;
-  cursor: pointer;
-}
-.video-thumb img {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-}
-.play-overlay {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 56px; height: 56px;
-  background: rgba(0,0,0,0.6);
+.video-item:active { opacity: 0.7; }
+.video-icon {
+  width: 36px; height: 36px;
   border-radius: 50%;
+  background: #fee2e2;
   display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
 }
-.play-overlay svg { margin-left: 3px; }
-.video-info { padding: 12px 14px; }
-.video-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-.video-date { font-size: 11px; color: #888; }
+.video-meta { flex: 1; min-width: 0; }
+.video-title { font-size: 14px; font-weight: 600; }
+.video-date { font-size: 11px; color: #888; margin-top: 2px; }
+.video-arrow { color: #ccc; font-size: 14px; flex-shrink: 0; }
 
 .empty {
   text-align: center; padding: 60px 20px;
   color: #999; font-size: 14px;
 }
-
 .loading {
   text-align: center; padding: 60px 20px;
   color: #999; font-size: 14px;
@@ -80,11 +61,6 @@ body {
   <div class="page-header">
     <a class="back-btn" id="backLink" href="#">&larr; 戻る</a>
     <div class="page-title">動画コンテンツ</div>
-  </div>
-
-  <div class="hero">
-    <div class="hero-title">限定コンテンツ動画</div>
-    <div class="hero-sub">あなた専用に公開された動画コンテンツです</div>
   </div>
 
   <div class="content" id="videoList">
@@ -111,11 +87,6 @@ function esc(s) {
   return d.innerHTML;
 }
 
-function getYouTubeId(url) {
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
-  return m ? m[1] : null;
-}
-
 async function loadVideos() {
   try {
     const res = await fetch(API + '/videos?token=' + encodeURIComponent(token));
@@ -138,25 +109,18 @@ function renderVideos(videos) {
     return;
   }
 
-  el.innerHTML = videos.map(v => {
-    const ytId = getYouTubeId(v.url);
-    const thumbUrl = ytId ? 'https://img.youtube.com/vi/' + ytId + '/mqdefault.jpg' : '';
-
-    return `
-      <div class="video-card">
-        <div class="video-thumb" onclick="window.open('${esc(v.url)}', '_blank')">
-          ${thumbUrl ? '<img src="' + esc(thumbUrl) + '" alt="">' : '<div style="position:absolute;top:0;left:0;width:100%;height:100%;background:#222;display:flex;align-items:center;justify-content:center;color:#666;font-size:13px;">動画</div>'}
-          <div class="play-overlay">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>
-          </div>
-        </div>
-        <div class="video-info">
-          <div class="video-title">${esc(v.title)}</div>
-          ${v.date ? '<div class="video-date">' + esc(v.date) + '</div>' : ''}
-        </div>
+  el.innerHTML = videos.map(v => `
+    <a class="video-item" href="${esc(v.url)}" target="_blank">
+      <div class="video-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc0000"><path d="M8 5v14l11-7z"/></svg>
       </div>
-    `;
-  }).join('');
+      <div class="video-meta">
+        <div class="video-title">${esc(v.title)}</div>
+        ${v.date ? '<div class="video-date">' + esc(v.date) + '</div>' : ''}
+      </div>
+      <div class="video-arrow">&rsaquo;</div>
+    </a>
+  `).join('');
 }
 </script>
 </body>
