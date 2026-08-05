@@ -63,6 +63,7 @@ body {
     <div class="page-title">動画コンテンツ</div>
   </div>
 
+  <div id="videoMemoArea" style="display:none; padding:16px 16px 0;"></div>
   <div class="content" id="videoList">
     <div class="loading">読み込み中...</div>
   </div>
@@ -96,10 +97,24 @@ async function loadVideos() {
     }
     const videos = await res.json();
     videos.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    loadVideoMemo();
     renderVideos(videos);
   } catch (e) {
     document.getElementById('videoList').innerHTML = '<div class="empty">接続エラー</div>';
   }
+}
+
+async function loadVideoMemo() {
+  try {
+    const res = await fetch(API + '/settings?key=videoPageMemo');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.memo) {
+      const area = document.getElementById('videoMemoArea');
+      area.style.display = 'block';
+      area.innerHTML = '<div style="background:#ecfdf5; border-radius:10px; padding:14px 16px; border-left:3px solid #2d8a4e;"><div style="font-size:13px; color:#1a2e23; line-height:1.6; white-space:pre-wrap;">' + esc(data.memo) + '</div></div>';
+    }
+  } catch (e) {}
 }
 
 function renderVideos(videos) {

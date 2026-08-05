@@ -78,6 +78,11 @@
     </div>
     <div class="card-body">
       <p class="text-sm text-muted mb-8">クライアントに公開する動画コンテンツを管理します。クライアントごとの公開設定はクライアント詳細ページで行います。</p>
+      <div style="background:#ecfdf5; border-radius:8px; padding:12px; margin-bottom:12px; border-left:3px solid var(--primary);">
+        <div class="form-label" style="margin-bottom:4px;">ページ上部メモ（クライアントに表示）</div>
+        <textarea id="videoPageMemo" class="form-input" rows="2" placeholder="例：動画は上から順番に見てください" style="margin-bottom:8px;"></textarea>
+        <button class="btn btn-primary" style="font-size:12px; padding:6px 16px;" onclick="saveVideoPageMemo()">メモを保存</button>
+      </div>
       <div id="videoAddForm" style="display:none; background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:12px;">
         <div class="form-group">
           <label class="form-label">タイトル</label>
@@ -482,8 +487,27 @@ loadErrorLogs();
 loadCleanupSettings();
 loadBehaviorChoices();
 loadVideos();
+loadVideoPageMemo();
 
 let allVideos = [];
+
+async function loadVideoPageMemo() {
+  try {
+    const res = await fetch(API + '/settings?key=videoPageMemo', { headers: headers() });
+    const data = await res.json();
+    document.getElementById('videoPageMemo').value = data.memo || '';
+  } catch (e) {}
+}
+
+async function saveVideoPageMemo() {
+  const memo = document.getElementById('videoPageMemo').value.trim();
+  await fetch(API + '/settings', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ key: 'videoPageMemo', value: { memo } })
+  });
+  showToast('メモを保存しました');
+}
 
 async function loadVideos() {
   try {
