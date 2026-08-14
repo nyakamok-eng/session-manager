@@ -182,6 +182,10 @@ function render(data, settings) {
     bookingArea.innerHTML = '<div style="text-align:center; padding:12px; background:#e8f5ee; border-radius:10px; margin-bottom:16px; font-size:13px; color:#2d8a4e; font-weight:600;">全セッション完了</div>';
   }
 
+  if (settings.surveyUrl) {
+    bookingArea.innerHTML += '<a href="' + esc(settings.surveyUrl) + '" target="_blank" style="display:block; width:100%; padding:13px; margin-bottom:16px; background:#fff; border:2px solid #2d8a4e; border-radius:10px; font-size:14px; font-weight:600; color:#2d8a4e; text-align:center; text-decoration:none; box-shadow:0 1px 3px rgba(0,0,0,0.06);">予約後のアンケートフォーム</a>';
+  }
+
   let html = '';
 
   if (completed.length > 0) {

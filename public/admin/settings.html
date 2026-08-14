@@ -66,6 +66,10 @@
         <label class="form-label">講師Instagram URL（任意）</label>
         <input type="url" id="cleanupInstagram" class="form-input" placeholder="https://instagram.com/...">
       </div>
+      <div class="form-group">
+        <label class="form-label">アンケートフォームURL（任意）</label>
+        <input type="url" id="cleanupSurvey" class="form-input" placeholder="https://...">
+      </div>
       <button class="btn btn-primary" onclick="saveCleanupSettings()">保存</button>
       <div id="cleanupStatus" class="text-sm text-muted mt-8"></div>
     </div>
@@ -690,6 +694,7 @@ async function loadCleanupSettings() {
       if (data.title) document.getElementById('cleanupTitle').value = data.title;
       if (data.desc) document.getElementById('cleanupDesc').value = data.desc;
       if (data.instagram) document.getElementById('cleanupInstagram').value = data.instagram;
+      if (data.surveyUrl) document.getElementById('cleanupSurvey').value = data.surveyUrl;
     }
   } catch (e) {}
 }
@@ -699,10 +704,11 @@ async function saveCleanupSettings() {
   const title = document.getElementById('cleanupTitle').value.trim() || 'お片付けSession';
   const desc = document.getElementById('cleanupDesc').value.trim();
   const instagram = document.getElementById('cleanupInstagram').value.trim();
+  const surveyUrl = document.getElementById('cleanupSurvey').value.trim();
   await fetch(API + '/settings', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ key: 'cleanupSession', value: { url, title, desc, instagram } })
+    body: JSON.stringify({ key: 'cleanupSession', value: { url, title, desc, instagram, surveyUrl } })
   });
   document.getElementById('cleanupStatus').textContent = '保存しました';
   setTimeout(() => document.getElementById('cleanupStatus').textContent = '', 2000);
