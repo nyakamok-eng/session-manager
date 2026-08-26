@@ -451,6 +451,14 @@ function renderTimelog(data) {
     `;
   }
 
+  if (nextDay > maxDays) {
+    html += `
+      <div style="text-align:center; margin:8px 0 4px;">
+        <button onclick="addOneDay()" style="padding:10px 24px; background:#fff; border:1.5px dashed #2d8a4e; border-radius:8px; font-size:13px; font-weight:600; color:#2d8a4e; cursor:pointer;">+ 1日追加する</button>
+      </div>
+    `;
+  }
+
   if (data.adminMemo) {
     html += `
       <div style="border:1px solid #d1fae5; border-radius:8px; padding:14px; margin-top:4px; background:#ecfdf5;">
@@ -462,6 +470,15 @@ function renderTimelog(data) {
 
   html += '</div>';
   area.innerHTML = html;
+}
+
+async function addOneDay() {
+  await fetch(API + '/timelog', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'addDays', token: token, days: 1 })
+  });
+  loadMyPage();
 }
 
 function addTimelogSlot() {

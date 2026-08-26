@@ -389,14 +389,23 @@ async function handleTimelog(url, request, method, env) {
     }
 
     if (action === "addDays") {
-      if (!(await verifyAdmin(request, env))) {
-        return Response.json({ error: "unauthorized" }, { status: 401 });
+      let id;
+      if (body.token) {
+        id = await env.SESSION_KV.get("token:" + body.token);
+        if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      } else if (body.clientId) {
+        if (!(await verifyAdmin(request, env))) {
+          return Response.json({ error: "unauthorized" }, { status: 401 });
+        }
+        id = body.clientId;
+      } else {
+        return Response.json({ error: "missing_params" }, { status: 400 });
       }
-      const data = await env.SESSION_KV.get("timelog:" + body.clientId, "json");
+      const data = await env.SESSION_KV.get("timelog:" + id, "json");
       if (!data) return Response.json({ error: "not_found" }, { status: 404 });
-      const add = body.days || 7;
+      const add = body.days || 1;
       data.maxDays = (data.maxDays || 7) + add;
-      await env.SESSION_KV.put("timelog:" + body.clientId, JSON.stringify(data));
+      await env.SESSION_KV.put("timelog:" + id, JSON.stringify(data));
       return Response.json(data);
     }
 
