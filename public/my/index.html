@@ -250,19 +250,20 @@ function renderTimelog(data) {
   if (!area || !data || data.status !== 'active') return;
 
   const recorded = data.entries || [];
+  const maxDays = data.maxDays || 7;
   const nextDay = recorded.length + 1;
 
   let html = `
     <div style="background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
       <div style="text-align:center; margin-bottom:14px;">
-        <div style="font-size:15px; font-weight:700; color:#2d8a4e;">1週間タイムログ</div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">7日分の時間の使い方を記録しましょう</div>
-        <div style="display:flex; justify-content:center; gap:5px; margin-top:10px;">
+        <div style="font-size:15px; font-weight:700; color:#2d8a4e;">タイムログ</div>
+        <div style="font-size:11px; color:#888; margin-top:2px;">${maxDays}日分の時間の使い方を記録しましょう</div>
+        <div style="display:flex; justify-content:center; gap:5px; margin-top:10px; flex-wrap:wrap;">
   `;
 
-  for (let i = 1; i <= 7; i++) {
+  for (let i = 1; i <= maxDays; i++) {
     const isDone = recorded.some(e => e.dayNumber === i);
-    const isNext = (i === nextDay && nextDay <= 7);
+    const isNext = (i === nextDay && nextDay <= maxDays);
     let dotStyle = 'background:#e5e7eb; color:#9ca3af;';
     if (isDone) dotStyle = 'background:#2d8a4e; color:#fff;';
     else if (isNext) dotStyle = 'background:#d97706; color:#fff;';
@@ -271,7 +272,7 @@ function renderTimelog(data) {
 
   html += `
         </div>
-        <div style="font-size:10px; color:#888; margin-top:6px;">${recorded.length} / 7日 記録済</div>
+        <div style="font-size:10px; color:#888; margin-top:6px;">${recorded.length} / ${maxDays}日 記録済</div>
       </div>
   `;
 
@@ -395,7 +396,7 @@ function renderTimelog(data) {
     html += '</div></div>';
   }
 
-  if (nextDay <= 7) {
+  if (nextDay <= maxDays) {
     html += `
       <div style="border:1.5px solid #fde68a; border-radius:8px; padding:14px; margin-bottom:8px; background:#fffbeb;">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
@@ -439,7 +440,7 @@ function renderTimelog(data) {
     `;
   }
 
-  for (let i = nextDay + 1; i <= 7; i++) {
+  for (let i = nextDay + 1; i <= maxDays; i++) {
     html += `
       <div style="border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px; margin-bottom:8px; opacity:0.4;">
         <div style="display:flex; align-items:center; gap:10px;">

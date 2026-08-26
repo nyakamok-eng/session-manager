@@ -380,15 +380,20 @@ function renderTimelog(data, area) {
     return;
   }
 
+  const maxDays = data.maxDays || 7;
+
   if (data.status === 'active') {
     let html = `
       <div class="card">
         <div class="card-header flex justify-between items-center">
-          <span>1週間タイムログ（実施中）</span>
+          <span>タイムログ（実施中）</span>
           <button class="header-action" style="color:#e53e3e;" onclick="stopTimelog()">終了</button>
         </div>
         <div class="card-body">
-          <div class="text-sm text-muted mb-8">${data.entries.length} / 7日 記録済</div>
+          <div class="flex justify-between items-center mb-8">
+            <span class="text-sm text-muted">${data.entries.length} / ${maxDays}日 記録済</span>
+            <button class="header-action" onclick="addTimelogDays()">+ 日数を追加</button>
+          </div>
     `;
 
     if (data.entries.length === 0) {
@@ -430,11 +435,11 @@ function renderTimelog(data, area) {
     let html = `
       <div class="card">
         <div class="card-header flex justify-between items-center">
-          <span>1週間タイムログ（完了）</span>
+          <span>タイムログ（完了）</span>
           <button class="header-action" onclick="restartTimelog()">再開</button>
         </div>
         <div class="card-body">
-          <div class="text-sm text-muted mb-8">${data.entries.length} / 7日 記録済</div>
+          <div class="text-sm text-muted mb-8">${data.entries.length} / ${maxDays}日 記録済</div>
     `;
 
     for (const entry of data.entries) {
@@ -497,6 +502,18 @@ async function saveAdminMemo() {
     body: JSON.stringify({ action: 'adminMemo', clientId: client.id, memo })
   });
   showToast('メモを保存しました');
+}
+
+async function addTimelogDays() {
+  const days = prompt('追加する日数を入力してください（例: 7）');
+  if (!days || isNaN(days) || Number(days) < 1) return;
+  await fetch(API + '/timelog', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'addDays', clientId: client.id, days: Number(days) })
+  });
+  showToast(days + '日分を追加しました');
+  await load();
 }
 
 async function restartTimelog() {
