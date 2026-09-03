@@ -137,6 +137,9 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData) {
   const pct = c.totalSessions > 0 ? Math.round((done / c.totalSessions) * 100) : 0;
 
   let html = `
+    <div style="text-align:right; padding: 8px 4px 0;">
+      <a href="/my/add-to-home.html" target="_blank" style="font-size:11px; color:#888; text-decoration:none;">ホーム画面に追加する &rsaquo;</a>
+    </div>
     <div class="mypage-header">
       <h1>${esc(c.name)} さんのマイページ</h1>
       <div class="remaining-box">
@@ -148,10 +151,6 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData) {
       </div>
       <div class="plan-info">全${c.totalSessions}回中 ${done}回完了</div>
       ${c.expiryDate ? '<div style="font-size:12px; margin-top:6px; opacity:0.85;">使用期限: ' + esc(c.expiryDate) + '</div>' : ''}
-    </div>
-
-    <div style="text-align:right; padding: 4px 4px 0;">
-      <a href="/my/add-to-home.html" target="_blank" style="font-size:11px; color:#888; text-decoration:none;">ホーム画面に追加する &rsaquo;</a>
     </div>
 
     <div style="padding: 0 4px;">
