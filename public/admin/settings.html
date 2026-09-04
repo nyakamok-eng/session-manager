@@ -528,9 +528,13 @@ function renderVideos(videos) {
     el.innerHTML = '<div class="text-sm text-muted">動画コンテンツがまだありません</div>';
     return;
   }
-  el.innerHTML = videos.map(v => `
+  el.innerHTML = videos.map((v, i) => `
     <div style="padding:8px 0; border-bottom:1px solid #f0f0f0;">
-      <div style="display:flex; align-items:center; gap:8px;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <button onclick="moveVideo('${v.id}','up')" style="border:none; background:none; cursor:pointer; padding:0; font-size:14px; color:${i === 0 ? '#ddd' : '#888'};" ${i === 0 ? 'disabled' : ''}>&#9650;</button>
+          <button onclick="moveVideo('${v.id}','down')" style="border:none; background:none; cursor:pointer; padding:0; font-size:14px; color:${i === videos.length - 1 ? '#ddd' : '#888'};" ${i === videos.length - 1 ? 'disabled' : ''}>&#9660;</button>
+        </div>
         <div style="flex:1; min-width:0;">
           <div style="font-size:13px; font-weight:500;">${esc(v.title)}</div>
           <div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(v.url)}</div>
@@ -539,7 +543,7 @@ function renderVideos(videos) {
         <button class="header-action" onclick="editVideo('${v.id}')">編集</button>
         <button class="header-action" style="color:#e53e3e;" onclick="deleteVideo('${v.id}')">削除</button>
       </div>
-      ${v.memo ? '<div style="font-size:11px; color:#2d8a4e; margin-top:4px; padding-left:2px;">' + esc(v.memo) + '</div>' : ''}
+      ${v.memo ? '<div style="font-size:11px; color:#2d8a4e; margin-top:4px; padding-left:24px;">' + esc(v.memo) + '</div>' : ''}
     </div>
   `).join('');
 }
@@ -614,6 +618,15 @@ async function saveVideoEdit(id) {
     body: JSON.stringify({ action: 'edit', id, title, url, date, memo })
   });
   showToast('保存しました');
+  loadVideos();
+}
+
+async function moveVideo(id, direction) {
+  await fetch(API + '/videos', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'reorder', id, direction })
+  });
   loadVideos();
 }
 

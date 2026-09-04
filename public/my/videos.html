@@ -96,7 +96,6 @@ async function loadVideos() {
       return;
     }
     const videos = await res.json();
-    videos.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
     loadVideoMemo();
     renderVideos(videos);
   } catch (e) {

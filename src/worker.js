@@ -680,7 +680,6 @@ async function handleVideos(url, request, method, env) {
       const access = clientData.videoAccess || [];
       if (access.length === 0) return Response.json({ error: "not_available" }, { status: 403 });
       const permitted = videos.filter(v => access.includes(v.id));
-      permitted.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
       return Response.json(permitted);
     }
 
@@ -715,6 +714,20 @@ async function handleVideos(url, request, method, env) {
       if (body.url !== undefined) item.url = body.url;
       if (body.date !== undefined) item.date = body.date;
       if (body.memo !== undefined) item.memo = body.memo;
+      await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
+      return Response.json(videos);
+    }
+
+    if (action === "reorder") {
+      const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+      const idx = videos.findIndex(v => v.id === body.id);
+      if (idx < 0) return Response.json({ error: "not_found" }, { status: 404 });
+      const dir = body.direction;
+      if (dir === "up" && idx > 0) {
+        [videos[idx - 1], videos[idx]] = [videos[idx], videos[idx - 1]];
+      } else if (dir === "down" && idx < videos.length - 1) {
+        [videos[idx + 1], videos[idx]] = [videos[idx], videos[idx + 1]];
+      }
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
     }
