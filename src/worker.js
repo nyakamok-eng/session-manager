@@ -49,6 +49,8 @@ async function handleAPI(url, request, env) {
       res = await handleExport(request, env);
     } else if (path === "/api/errors") {
       res = await handleErrors(url, request, method, env);
+    } else if (path === "/api/smartphone-check") {
+      res = await handleSmartphoneCheck(url, request, method, env);
     } else if (path === "/api/cleanup") {
       res = await handleCleanup(url, request, method, env);
     } else if (path === "/api/patterns") {
@@ -881,6 +883,35 @@ async function handlePatterns(url, request, method, env) {
     return Response.json({ error: "invalid_action" }, { status: 400 });
   }
 
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
+}
+
+async function handleSmartphoneCheck(url, request, method, env) {
+  if (method === "GET") {
+    const clientToken = url.searchParams.get("token");
+    if (clientToken) {
+      const id = await env.SESSION_KV.get("token:" + clientToken);
+      if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      const client = await env.SESSION_KV.get("client:" + id, "json");
+      if (!client || !client.smartphoneCheckEnabled) {
+        return Response.json({ error: "not_available" }, { status: 403 });
+      }
+      return Response.json({ ok: true });
+    }
+  }
+  if (method === "POST") {
+    if (!(await verifyAdmin(request, env))) {
+      return Response.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const body = await request.json();
+    if (body.action === "toggle") {
+      const client = await env.SESSION_KV.get("client:" + body.clientId, "json");
+      if (!client) return Response.json({ error: "not_found" }, { status: 404 });
+      client.smartphoneCheckEnabled = !!body.enabled;
+      await env.SESSION_KV.put("client:" + body.clientId, JSON.stringify(client));
+      return Response.json({ ok: true });
+    }
+  }
   return Response.json({ error: "method_not_allowed" }, { status: 405 });
 }
 

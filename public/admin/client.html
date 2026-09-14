@@ -205,6 +205,8 @@ function render() {
 
   html += '<div id="archive-area" class="mt-16"></div>';
 
+  html += '<div id="smartphone-check-area" class="mt-16"></div>';
+
   html += '<div id="cleanup-area" class="mt-16"></div>';
 
   html += '<div id="pattern-area" class="mt-16"></div>';
@@ -215,6 +217,7 @@ function render() {
   document.title = client.name + ' - セッション管理';
   loadTimelog();
   loadArchiveAccess();
+  renderSmartphoneCheck();
   loadCleanup();
   loadPatterns();
   loadVideoAccess();
@@ -576,6 +579,37 @@ async function saveArchiveAccess() {
   });
   client.archiveAccess = ids;
   showToast('閲覧権限を保存しました');
+}
+
+function renderSmartphoneCheck() {
+  const area = document.getElementById('smartphone-check-area');
+  if (!area) return;
+  const enabled = !!client.smartphoneCheckEnabled;
+  area.innerHTML = `
+    <div class="card">
+      <div class="card-header flex justify-between items-center">
+        <span>スマホの整理チェックシート</span>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <span style="font-size:11px; color:${enabled ? 'var(--green)' : '#999'};">${enabled ? '公開中' : '非公開'}</span>
+          <input type="checkbox" ${enabled ? 'checked' : ''} onchange="toggleSmartphoneCheck(this.checked)" style="width:16px; height:16px; accent-color:var(--green);">
+        </label>
+      </div>
+      <div class="card-body">
+        <div class="text-sm text-muted">クライアントのマイページにスマホ整理ワークを表示します</div>
+      </div>
+    </div>
+  `;
+}
+
+async function toggleSmartphoneCheck(enabled) {
+  await fetch(API + '/smartphone-check', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'toggle', clientId: client.id, enabled })
+  });
+  client.smartphoneCheckEnabled = enabled;
+  showToast(enabled ? 'スマホ整理チェックシートを公開しました' : '非公開にしました');
+  renderSmartphoneCheck();
 }
 
 async function loadCleanup() {

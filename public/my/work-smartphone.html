@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スマホの整理チェックシート</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream: #FDF8F3;
+    --warm-white: #FFFDF9;
+    --blush: #F2A58E;
+    --blush-light: #F9D4C8;
+    --blush-pale: #FEF0EB;
+    --terracotta: #D4735A;
+    --brown: #7A4F3A;
+    --text: #3D2B1F;
+    --text-light: #7A6458;
+    --border: #EDD9CF;
+    --shadow: rgba(212, 115, 90, 0.12);
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    line-height: 1.8;
+    min-height: 100vh;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #F2A58E 0%, #D4735A 60%, #C05E43 100%);
+    padding: 56px 24px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: -40px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .header-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    padding: 5px 16px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .header h1 {
+    color: #fff;
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .header h1 span {
+    background: rgba(255,255,255,0.22);
+    padding: 0 8px;
+    border-radius: 4px;
+  }
+  .header-sub {
+    color: rgba(255,255,255,0.88);
+    font-size: 14px;
+    font-weight: 300;
+    position: relative;
+    z-index: 1;
+  }
+
+  .intro {
+    background: var(--warm-white);
+    border-bottom: 1px solid var(--border);
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .intro p {
+    max-width: 560px;
+    margin: 0 auto;
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 2;
+  }
+  .intro strong {
+    color: var(--terracotta);
+    font-weight: 700;
+  }
+
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+  }
+
+  .progress-wrap {
+    background: var(--warm-white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .progress-label {
+    font-size: 12px;
+    color: var(--text-light);
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .progress-bar-bg {
+    flex: 1;
+    height: 8px;
+    background: var(--blush-pale);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--blush), var(--terracotta));
+    border-radius: 10px;
+    transition: width 0.4s ease;
+  }
+  .progress-count {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--terracotta);
+    white-space: nowrap;
+    min-width: 48px;
+    text-align: right;
+  }
+
+  .section {
+    margin-bottom: 36px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .section-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--blush-light), var(--blush));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--brown);
+  }
+  .section-count {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .item {
+    background: var(--warm-white);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    overflow: hidden;
+  }
+  .item:hover {
+    border-color: var(--blush);
+    box-shadow: 0 4px 16px var(--shadow);
+    transform: translateY(-1px);
+  }
+  .item.checked {
+    background: var(--blush-pale);
+    border-color: var(--blush);
+  }
+  .item-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+  }
+  .checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background: #fff;
+  }
+  .item.checked .checkbox {
+    background: var(--terracotta);
+    border-color: var(--terracotta);
+  }
+  .checkmark {
+    opacity: 0;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    transition: opacity 0.2s ease;
+    line-height: 1;
+  }
+  .item.checked .checkmark { opacity: 1; }
+
+  .item-text {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text);
+    padding-top: 1px;
+  }
+  .item.checked .item-text {
+    color: var(--terracotta);
+    font-weight: 500;
+  }
+
+  hr.divider {
+    border: none;
+    border-top: 1px dashed var(--border);
+    margin: 32px 0;
+  }
+
+  .result-section {
+    background: var(--warm-white);
+    border: 2px solid var(--blush-light);
+    border-radius: 20px;
+    padding: 32px 28px;
+    text-align: center;
+    margin-top: 40px;
+    transition: all 0.4s ease;
+  }
+  .result-emoji {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .result-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .result-body {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 2;
+    margin-bottom: 24px;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .result-body strong {
+    color: var(--terracotta);
+  }
+
+  .score-visual {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .score-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--blush-pale);
+    border: 2px solid var(--blush-light);
+    transition: all 0.3s ease;
+  }
+  .score-dot.active {
+    background: var(--blush);
+    border-color: var(--terracotta);
+    transform: scale(1.15);
+  }
+
+  .tip-box {
+    background: var(--blush-pale);
+    border: 1.5px solid var(--blush-light);
+    border-radius: 14px;
+    padding: 24px 22px;
+    margin-top: 16px;
+    text-align: left;
+  }
+  .tip-box-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--terracotta);
+    margin-bottom: 10px;
+  }
+  .tip-box p {
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.9;
+  }
+  .tip-box strong {
+    color: var(--terracotta);
+    font-weight: 700;
+  }
+
+  .reset-wrap {
+    text-align: center;
+    margin-top: 24px;
+  }
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-light);
+    font-size: 12px;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    transition: all 0.2s ease;
+  }
+  .reset-btn:hover {
+    border-color: var(--blush);
+    color: var(--terracotta);
+  }
+
+  .footer {
+    text-align: center;
+    padding: 32px 20px;
+    font-size: 12px;
+    color: var(--text-light);
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  @media (max-width: 480px) {
+    .header { padding: 40px 20px 36px; }
+    .container { padding: 28px 16px 48px; }
+    .item-inner { padding: 14px 16px; }
+    .result-section { padding: 24px 20px; }
+    .tip-box { padding: 22px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-tag">Self Check Sheet</div>
+  <h1>スマホの整理<br><span>チェックシート</span></h1>
+  <p class="header-sub">当てはまる項目にチェックを入れてください</p>
+</div>
+
+<div class="intro">
+  <p>スマホは毎日何時間も触る、<br>あなたの「一番身近な環境」です。<br>
+  <strong>通知・アプリ・LINEを整理するだけで<br>頭の中まですっきり</strong>します。<br>
+  まずは今の状態を確認してみましょう。</p>
+</div>
+
+<div class="container">
+
+  <div class="progress-wrap">
+    <span class="progress-label">チェック済み</span>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <span class="progress-count" id="progressCount">0 / 29</span>
+  </div>
+
+  <!-- アプリの整理 -->
+  <div class="section" data-section="app">
+    <div class="section-header">
+      <div class="section-icon">📱</div>
+      <div class="section-title">アプリの整理</div>
+      <div class="section-count" id="count-app">0 / 8</div>
+    </div>
+
+    <div class="item" data-id="app-1" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">使っていないアプリを削除した</div>
+      </div>
+    </div>
+    <div class="item" data-id="app-2" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">何のためにダウンロードしたか覚えていないアプリを削除した</div>
+      </div>
+    </div>
+    <div class="item" data-id="app-3" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">もう使えなくなっている（サービス終了等）アプリを削除した</div>
+      </div>
+    </div>
+    <div class="item" data-id="app-4" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">1回だけ使って放置しているアプリを削除した（旅行先・イベント用など）</div>
+      </div>
+    </div>
+    <div class="item" data-id="app-5" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">「その場で10%OFF」等で登録したまま放置のアプリを削除した</div>
+      </div>
+    </div>
+    <div class="item" data-id="app-6" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">自分なりのジャンル（用途別）でフォルダを作った</div>
+      </div>
+    </div>
+    <div class="item" data-id="app-7" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">フォルダに自分がわかる名前をつけた</div>
+      </div>
+    </div>
+    <div class="item" data-id="app-8" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">使ってみて、しっくりこないフォルダは分け直した</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通知の整理 -->
+  <div class="section" data-section="notify">
+    <div class="section-header">
+      <div class="section-icon">🔔</div>
+      <div class="section-title">通知の整理</div>
+      <div class="section-count" id="count-notify">0 / 5</div>
+    </div>
+
+    <div class="item" data-id="notify-1" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">スマホ本体の通知設定を開いて確認した</div>
+      </div>
+    </div>
+    <div class="item" data-id="notify-2" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">使っていないアプリの通知をOFFにした</div>
+      </div>
+    </div>
+    <div class="item" data-id="notify-3" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">SNS（Instagram, Xなど）の通知をOFFにした</div>
+      </div>
+    </div>
+    <div class="item" data-id="notify-4" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">通知センターに溜まっている通知を一掃した</div>
+      </div>
+    </div>
+    <div class="item" data-id="notify-5" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">新しくアプリをダウンロードするとき、通知設定を確認する習慣をつけた</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LINEの整理 -->
+  <div class="section" data-section="line">
+    <div class="section-header">
+      <div class="section-icon">💬</div>
+      <div class="section-title">LINEの整理</div>
+      <div class="section-count" id="count-line">0 / 6</div>
+    </div>
+
+    <div class="item" data-id="line-1" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">不要なグループLINE・オープンチャットを退出/削除した</div>
+      </div>
+    </div>
+    <div class="item" data-id="line-2" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">使っていない公式LINEをブロックまたは削除した</div>
+      </div>
+    </div>
+    <div class="item" data-id="line-3" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">大事なトークをピン留めした</div>
+      </div>
+    </div>
+    <div class="item" data-id="line-4" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">不要なトークの通知をOFFにした</div>
+      </div>
+    </div>
+    <div class="item" data-id="line-5" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">メンション通知（@全員）をOFFにした</div>
+      </div>
+    </div>
+    <div class="item" data-id="line-6" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">未読を一括で既読にした（必要なものだけ事前に確認）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- メールの整理 -->
+  <div class="section" data-section="mail">
+    <div class="section-header">
+      <div class="section-icon">📧</div>
+      <div class="section-title">メールの整理</div>
+      <div class="section-count" id="count-mail">0 / 3</div>
+    </div>
+
+    <div class="item" data-id="mail-1" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">不要なメルマガの配信を停止（解除）した</div>
+      </div>
+    </div>
+    <div class="item" data-id="mail-2" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">溜まった未読メールを一括で既読にした</div>
+      </div>
+    </div>
+    <div class="item" data-id="mail-3" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">ネット購入時に自動チェックされるメルマガ登録を外す習慣をつけた</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ホーム画面の整理 -->
+  <div class="section" data-section="home">
+    <div class="section-header">
+      <div class="section-icon">🏠</div>
+      <div class="section-title">ホーム画面の整理</div>
+      <div class="section-count" id="count-home">0 / 4</div>
+    </div>
+
+    <div class="item" data-id="home-1" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">ホーム画面のページ数を減らした</div>
+      </div>
+    </div>
+    <div class="item" data-id="home-2" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">よく使うアプリを画面の下の方（親指が届く位置）に配置した</div>
+      </div>
+    </div>
+    <div class="item" data-id="home-3" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">あまり使わないアプリはフォルダにまとめて奥のページに移動した</div>
+      </div>
+    </div>
+    <div class="item" data-id="home-4" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">フォルダ内でも、よく使う順に並べ替えた</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- スマホとの付き合い方 -->
+  <div class="section" data-section="habit">
+    <div class="section-header">
+      <div class="section-icon">⏰</div>
+      <div class="section-title">スマホとの付き合い方</div>
+      <div class="section-count" id="count-habit">0 / 3</div>
+    </div>
+
+    <div class="item" data-id="habit-1" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">スマホを触るタイミングを「次の予定があるとき」にしてみた</div>
+      </div>
+    </div>
+    <div class="item" data-id="habit-2" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">整理作業は時間を決めて取り組んだ（例: 15分だけ）</div>
+      </div>
+    </div>
+    <div class="item" data-id="habit-3" onclick="toggle(this)">
+      <div class="item-inner">
+        <div class="checkbox"><span class="checkmark">&#10003;</span></div>
+        <div class="item-text">「全部終わらせる」ではなく「ここまでやる」を意識できた</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- RESULT -->
+  <div class="result-section" id="resultSection">
+    <span class="result-emoji" id="resultEmoji">📋</span>
+
+    <div class="score-visual" id="scoreDots"></div>
+
+    <div class="result-title" id="resultTitle">チェックした数：<span id="scoreNum">0</span> / 29</div>
+    <div class="result-body" id="resultBody">
+      できた項目にチェックを入れていくと、<br>あなたのスマホ整理の進捗が見えてきます。
+    </div>
+
+    <div class="tip-box" id="tipBox" style="display:none;">
+      <div class="tip-box-title" id="tipTitle"></div>
+      <p id="tipText"></p>
+    </div>
+  </div>
+
+  <div class="reset-wrap">
+    <button class="reset-btn" onclick="resetAll()">チェックをリセットする</button>
+  </div>
+
+</div>
+
+<div class="footer">
+  &copy; さっきー coaching ｜ このシートを無断転載・再配布することはご遠慮ください
+</div>
+
+<script>
+  const TOTAL = 29;
+  const STORAGE_KEY = 'smartphone-checklist-state';
+
+  // --- 初期化 ---
+  function init() {
+    // スコアドット生成
+    const dotsEl = document.getElementById('scoreDots');
+    for (let i = 0; i < TOTAL; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'score-dot';
+      dot.id = 'dot' + i;
+      dotsEl.appendChild(dot);
+    }
+
+    // localStorage から復元
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const ids = JSON.parse(saved);
+        ids.forEach(function(id) {
+          const item = document.querySelector('[data-id="' + id + '"]');
+          if (item) item.classList.add('checked');
+        });
+      }
+    } catch(e) {}
+
+    updateUI();
+  }
+
+  function toggle(el) {
+    el.classList.toggle('checked');
+    saveState();
+    updateUI();
+  }
+
+  function saveState() {
+    try {
+      var checkedIds = [];
+      document.querySelectorAll('.item.checked').forEach(function(el) {
+        checkedIds.push(el.getAttribute('data-id'));
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(checkedIds));
+    } catch(e) {}
+  }
+
+  function getCheckedCount() {
+    return document.querySelectorAll('.item.checked').length;
+  }
+
+  function getSectionCount(section) {
+    var items = document.querySelectorAll('[data-section="' + section + '"] .item');
+    var checked = document.querySelectorAll('[data-section="' + section + '"] .item.checked');
+    return { total: items.length, checked: checked.length };
+  }
+
+  function updateUI() {
+    var checked = getCheckedCount();
+
+    // Progress bar
+    var pct = (checked / TOTAL) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressCount').textContent = checked + ' / ' + TOTAL;
+
+    // Section counts
+    ['app','notify','line','mail','home','habit'].forEach(function(s) {
+      var c = getSectionCount(s);
+      var el = document.getElementById('count-' + s);
+      if (el) el.textContent = c.checked + ' / ' + c.total;
+    });
+
+    // Dots
+    for (var i = 0; i < TOTAL; i++) {
+      var dot = document.getElementById('dot' + i);
+      if (dot) {
+        if (i < checked) {
+          dot.classList.add('active');
+        } else {
+          dot.classList.remove('active');
+        }
+      }
+    }
+
+    // Score text
+    var sn = document.getElementById('scoreNum');
+    if (sn) sn.textContent = checked;
+
+    // Result
+    var em = document.getElementById('resultEmoji');
+    var ti = document.getElementById('resultTitle');
+    var bo = document.getElementById('resultBody');
+    var tip = document.getElementById('tipBox');
+    var tipTi = document.getElementById('tipTitle');
+    var tipTx = document.getElementById('tipText');
+
+    if (checked === 0) {
+      em.textContent = '📋';
+      ti.innerHTML = 'チェックした数：<span id="scoreNum">0</span> / 29';
+      bo.innerHTML = 'できた項目にチェックを入れていくと、<br>あなたのスマホ整理の状況が見えてきます。';
+      tip.style.display = 'none';
+    } else if (checked <= 9) {
+      em.textContent = '🌱';
+      ti.innerHTML = 'チェックした数：<span id="scoreNum">' + checked + '</span> / 29';
+      bo.innerHTML = 'いいスタートです！<br><br>まだまだ伸びしろがたっぷり。<br><strong>スマホの中には「気づかないうちに時間を奪っているもの」</strong>が隠れています。<br><br>通知やアプリの見直しから始めてみましょう。<br>5分のスキマ時間でできることがたくさんあります。';
+      tip.style.display = 'block';
+      tipTi.textContent = 'ワークのヒント';
+      tipTx.innerHTML = 'まずは<strong>「通知の整理」と「アプリの整理」</strong>から取り組むのがおすすめです。<br>この2つは短時間で効果を実感しやすいジャンルです。';
+    } else if (checked <= 19) {
+      em.textContent = '🌿';
+      ti.innerHTML = 'チェックした数：<span id="scoreNum">' + checked + '</span> / 29';
+      bo.innerHTML = '半分以上クリア、素晴らしいです！<br><br>アプリや通知の整理が進むと、<br><strong>「あれ、スマホ触る時間が減った」</strong><br>と感じ始める頃です。<br><br>LINEやメールの整理もあわせて進めると<br>頭の中まですっきりしてきますよ。';
+      tip.style.display = 'block';
+      tipTi.textContent = '次に取り組むなら';
+      tipTx.innerHTML = 'スマホが片付くと、<strong>頭の中の「やらなきゃ」も減っていきます。</strong><br>残りの未チェック項目を確認して、できそうなものから進めていきましょう。';
+    } else {
+      em.textContent = '✨';
+      ti.innerHTML = 'チェックした数：<span id="scoreNum">' + checked + '</span> / 29';
+      bo.innerHTML = 'ほぼコンプリート！<br><br><strong>スマホの環境整備がしっかりできている</strong>状態です。<br><br>通知に振り回されず、<br>必要なときに必要なものだけ触れる。<br>この「整った環境」があるだけで、<br>毎日の行動のスピードが変わります。';
+      tip.style.display = 'block';
+      tipTi.textContent = 'この先のステップ';
+      tipTx.innerHTML = 'スマホの整理ができた今、<strong>空いた時間をどう使うか</strong>が次のテーマです。<br>ワークの中で一緒に整理していきましょう。';
+    }
+  }
+
+  function resetAll() {
+    document.querySelectorAll('.item.checked').forEach(function(el) {
+      el.classList.remove('checked');
+    });
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+    updateUI();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  init();
+</script>
+
+</body>
+</html>

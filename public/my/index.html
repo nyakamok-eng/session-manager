@@ -106,6 +106,11 @@ async function loadMyPage() {
       const cleanupRes = await fetch(API + '/cleanup?token=' + encodeURIComponent(token));
       cleanupAvailable = cleanupRes.ok;
     } catch (e) {}
+    let smartphoneCheckAvailable = false;
+    try {
+      const scRes = await fetch(API + '/smartphone-check?token=' + encodeURIComponent(token));
+      smartphoneCheckAvailable = scRes.ok;
+    } catch (e) {}
     let patternData = null;
     try {
       const patternRes = await fetch(API + '/patterns?token=' + encodeURIComponent(token));
@@ -116,7 +121,7 @@ async function loadMyPage() {
       const videoRes = await fetch(API + '/videos?token=' + encodeURIComponent(token));
       if (videoRes.ok) videoData = await videoRes.json();
     } catch (e) {}
-    render(client, audioLink, cleanupAvailable, patternData, videoData);
+    render(client, audioLink, cleanupAvailable, smartphoneCheckAvailable, patternData, videoData);
     if (patternData !== null) renderPatterns(patternData);
     renderTimelog(timelogData);
     renderArchives(archives);
@@ -131,7 +136,7 @@ function esc(s) {
   return d.innerHTML;
 }
 
-function render(c, audioLink, cleanupAvailable, patternData, videoData) {
+function render(c, audioLink, cleanupAvailable, smartphoneCheckAvailable, patternData, videoData) {
   const r = c.totalSessions - c.sessions.length;
   const done = c.sessions.length;
   const pct = c.totalSessions > 0 ? Math.round((done / c.totalSessions) * 100) : 0;
@@ -164,6 +169,16 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData) {
         </div>
         <div style="font-size:14px; font-weight:600; color:#2d8a4e;">動画コンテンツ</div>
         <div style="font-size:11px; color:#888; margin-top:4px;">${videoData.length}本の動画</div>
+      </a>
+    `;
+  }
+
+  if (smartphoneCheckAvailable) {
+    html += `
+      <a href="/my/work-smartphone.html?t=${encodeURIComponent(token)}" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center; border:2px solid #c4856c;">
+        <div style="font-size:24px; margin-bottom:6px;">&#128241;</div>
+        <div style="font-size:14px; font-weight:600; color:#c4856c;">スマホの整理チェックシート</div>
+        <div style="font-size:11px; color:#888; margin-top:4px;">ワーク｜タップして開く</div>
       </a>
     `;
   }
