@@ -119,7 +119,10 @@ async function loadMyPage() {
     let videoData = null;
     try {
       const videoRes = await fetch(API + '/videos?token=' + encodeURIComponent(token));
-      if (videoRes.ok) videoData = await videoRes.json();
+      if (videoRes.ok) {
+        const vd = await videoRes.json();
+        videoData = vd.videos || vd;
+      }
     } catch (e) {}
     render(client, audioLink, cleanupAvailable, smartphoneCheckAvailable, patternData, videoData);
     if (patternData !== null) renderPatterns(patternData);

@@ -619,6 +619,7 @@ async function handleExport(request, env) {
 
   const behaviorChoices = await env.SESSION_KV.get("settings:behaviorChoices", "json") || null;
   const videoContents = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+  const videoSections = await env.SESSION_KV.get("settings:videoSections", "json") || [];
 
   const exportData = {
     exportedAt: new Date().toISOString(),
@@ -627,7 +628,8 @@ async function handleExport(request, env) {
     audioLink,
     errorLogs,
     behaviorChoices,
-    videoContents
+    videoContents,
+    videoSections
   };
 
   return Response.json(exportData);
@@ -682,7 +684,8 @@ async function handleVideos(url, request, method, env) {
       const access = clientData.videoAccess || [];
       if (access.length === 0) return Response.json({ error: "not_available" }, { status: 403 });
       const permitted = videos.filter(v => access.includes(v.id));
-      return Response.json(permitted);
+      const sections = await env.SESSION_KV.get("settings:videoSections", "json") || [];
+      return Response.json({ videos: permitted, sections });
     }
 
     if (!(await verifyAdmin(request, env))) {
@@ -703,7 +706,7 @@ async function handleVideos(url, request, method, env) {
     if (action === "add") {
       const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
       const id = crypto.randomUUID().slice(0, 8);
-      videos.unshift({ id, title: body.title, url: body.url, date: body.date || "", memo: body.memo || "" });
+      videos.push({ id, title: body.title, url: body.url, date: body.date || "", memo: body.memo || "", section: body.section || "" });
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
     }
@@ -716,19 +719,26 @@ async function handleVideos(url, request, method, env) {
       if (body.url !== undefined) item.url = body.url;
       if (body.date !== undefined) item.date = body.date;
       if (body.memo !== undefined) item.memo = body.memo;
+      if (body.section !== undefined) item.section = body.section;
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
     }
 
     if (action === "reorder") {
       const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
-      const idx = videos.findIndex(v => v.id === body.id);
+      const sec = body.section || "";
+      const sectionVideos = videos.filter(v => (v.section || "") === sec);
+      const idx = sectionVideos.findIndex(v => v.id === body.id);
       if (idx < 0) return Response.json({ error: "not_found" }, { status: 404 });
       const dir = body.direction;
       if (dir === "up" && idx > 0) {
-        [videos[idx - 1], videos[idx]] = [videos[idx], videos[idx - 1]];
-      } else if (dir === "down" && idx < videos.length - 1) {
-        [videos[idx + 1], videos[idx]] = [videos[idx], videos[idx + 1]];
+        const globalA = videos.indexOf(sectionVideos[idx - 1]);
+        const globalB = videos.indexOf(sectionVideos[idx]);
+        [videos[globalA], videos[globalB]] = [videos[globalB], videos[globalA]];
+      } else if (dir === "down" && idx < sectionVideos.length - 1) {
+        const globalA = videos.indexOf(sectionVideos[idx]);
+        const globalB = videos.indexOf(sectionVideos[idx + 1]);
+        [videos[globalA], videos[globalB]] = [videos[globalB], videos[globalA]];
       }
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
@@ -739,6 +749,52 @@ async function handleVideos(url, request, method, env) {
       videos = videos.filter(v => v.id !== body.id);
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
+    }
+
+    if (action === "setSections") {
+      await env.SESSION_KV.put("settings:videoSections", JSON.stringify(body.sections || []));
+      return Response.json({ ok: true });
+    }
+
+    if (action === "getSections") {
+      const sections = await env.SESSION_KV.get("settings:videoSections", "json") || [];
+      return Response.json(sections);
+    }
+
+    if (action === "reorderSections") {
+      const sections = await env.SESSION_KV.get("settings:videoSections", "json") || [];
+      const idx = sections.indexOf(body.name);
+      if (idx < 0) return Response.json({ error: "not_found" }, { status: 404 });
+      const dir = body.direction;
+      if (dir === "up" && idx > 0) {
+        [sections[idx - 1], sections[idx]] = [sections[idx], sections[idx - 1]];
+      } else if (dir === "down" && idx < sections.length - 1) {
+        [sections[idx + 1], sections[idx]] = [sections[idx], sections[idx + 1]];
+      }
+      await env.SESSION_KV.put("settings:videoSections", JSON.stringify(sections));
+      return Response.json(sections);
+    }
+
+    if (action === "renameSection") {
+      const sections = await env.SESSION_KV.get("settings:videoSections", "json") || [];
+      const idx = sections.indexOf(body.oldName);
+      if (idx < 0) return Response.json({ error: "not_found" }, { status: 404 });
+      sections[idx] = body.newName;
+      await env.SESSION_KV.put("settings:videoSections", JSON.stringify(sections));
+      const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+      videos.forEach(v => { if (v.section === body.oldName) v.section = body.newName; });
+      await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
+      return Response.json({ sections, videos });
+    }
+
+    if (action === "deleteSection") {
+      let sections = await env.SESSION_KV.get("settings:videoSections", "json") || [];
+      sections = sections.filter(s => s !== body.name);
+      await env.SESSION_KV.put("settings:videoSections", JSON.stringify(sections));
+      const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
+      videos.forEach(v => { if (v.section === body.name) v.section = ""; });
+      await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
+      return Response.json({ sections, videos });
     }
 
     if (action === "setAccess") {

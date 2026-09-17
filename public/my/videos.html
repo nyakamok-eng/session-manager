@@ -95,9 +95,11 @@ async function loadVideos() {
       document.getElementById('videoList').innerHTML = '<div class="empty">動画コンテンツはありません</div>';
       return;
     }
-    const videos = await res.json();
+    const data = await res.json();
+    const videos = data.videos || data;
+    const sections = data.sections || [];
     loadVideoMemo();
-    renderVideos(videos);
+    renderVideos(videos, sections);
   } catch (e) {
     document.getElementById('videoList').innerHTML = '<div class="empty">接続エラー</div>';
   }
@@ -116,26 +118,45 @@ async function loadVideoMemo() {
   } catch (e) {}
 }
 
-function renderVideos(videos) {
+function renderVideos(videos, sections) {
   const el = document.getElementById('videoList');
   if (!videos || videos.length === 0) {
     el.innerHTML = '<div class="empty">動画コンテンツはありません</div>';
     return;
   }
 
-  el.innerHTML = videos.map(v => `
-    <a class="video-item" href="${esc(v.url)}" target="_blank">
-      <div class="video-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc0000"><path d="M8 5v14l11-7z"/></svg>
-      </div>
-      <div class="video-meta">
-        <div class="video-title">${esc(v.title)}</div>
-        ${v.date ? '<div class="video-date">' + esc(v.date) + '</div>' : ''}
-        ${v.memo ? '<div style="font-size:12px; color:#2d8a4e; margin-top:4px; line-height:1.4;">' + esc(v.memo) + '</div>' : ''}
-      </div>
-      <div class="video-arrow">&rsaquo;</div>
-    </a>
-  `).join('');
+  const grouped = {};
+  sections.forEach(s => { grouped[s] = []; });
+  grouped[''] = [];
+  videos.forEach(v => {
+    const sec = v.section || '';
+    if (!grouped[sec]) grouped[sec] = [];
+    grouped[sec].push(v);
+  });
+
+  const order = [...sections, ''];
+  let html = '';
+  order.forEach(sec => {
+    const list = grouped[sec];
+    if (!list || list.length === 0) return;
+    if (sec) {
+      html += '<div style="font-size:15px; font-weight:700; color:#2d8a4e; margin:20px 0 8px; padding-bottom:6px; border-bottom:2px solid #d4edda;">' + esc(sec) + '</div>';
+    }
+    html += list.map(v => `
+      <a class="video-item" href="${esc(v.url)}" target="_blank">
+        <div class="video-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#cc0000"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="video-meta">
+          <div class="video-title">${esc(v.title)}</div>
+          ${v.date ? '<div class="video-date">' + esc(v.date) + '</div>' : ''}
+          ${v.memo ? '<div style="font-size:12px; color:#2d8a4e; margin-top:4px; line-height:1.4;">' + esc(v.memo) + '</div>' : ''}
+        </div>
+        <div class="video-arrow">&rsaquo;</div>
+      </a>
+    `).join('');
+  });
+  el.innerHTML = html;
 }
 </script>
 </body>
