@@ -108,10 +108,6 @@
           <input type="url" id="videoUrl" class="form-input" placeholder="https://youtu.be/...">
         </div>
         <div class="form-group">
-          <label class="form-label">公開日</label>
-          <input type="date" id="videoDate" class="form-input">
-        </div>
-        <div class="form-group">
           <label class="form-label">メモ（クライアントに表示）</label>
           <textarea id="videoMemo" class="form-input" rows="2" placeholder="例：まずはこちらから見てください"></textarea>
         </div>
@@ -636,7 +632,6 @@ function renderVideos(videos) {
             <div style="font-size:13px; font-weight:500;">${esc(v.title)}</div>
             <div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(v.url)}</div>
           </div>
-          <div style="font-size:11px; color:#888; white-space:nowrap;">${esc(v.date)}</div>
           <button class="header-action" onclick="editVideo('${v.id}')">編集</button>
           <button class="header-action" style="color:#e53e3e;" onclick="deleteVideo('${v.id}')">削除</button>
         </div>
@@ -655,19 +650,16 @@ function toggleVideoAdd() {
 async function addVideo() {
   const title = document.getElementById('videoTitle').value.trim();
   const url = document.getElementById('videoUrl').value.trim();
-  const dateVal = document.getElementById('videoDate').value;
   if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
-  const date = dateVal ? dateVal.replace(/-/g, '.') : '';
   const memo = document.getElementById('videoMemo').value.trim();
   const section = document.getElementById('videoSection').value;
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'add', title, url, date, memo, section })
+    body: JSON.stringify({ action: 'add', title, url, memo, section })
   });
   document.getElementById('videoTitle').value = '';
   document.getElementById('videoUrl').value = '';
-  document.getElementById('videoDate').value = '';
   document.getElementById('videoMemo').value = '';
   toggleVideoAdd();
   showToast('動画を追加しました');
@@ -677,7 +669,6 @@ async function addVideo() {
 function editVideo(id) {
   const v = allVideos.find(x => x.id === id);
   if (!v) return;
-  const dateVal = v.date ? v.date.replace(/\./g, '-') : '';
   const sectionOpts = '<option value="">(未分類)</option>' + videoSections.map(s => `<option value="${esc(s)}" ${(v.section || '') === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
   const el = document.getElementById('videoList');
   el.innerHTML = `
@@ -695,10 +686,6 @@ function editVideo(id) {
         <input type="url" id="editVideoUrl" class="form-input" value="${esc(v.url)}">
       </div>
       <div class="form-group">
-        <label class="form-label">公開日</label>
-        <input type="date" id="editVideoDate" class="form-input" value="${dateVal}">
-      </div>
-      <div class="form-group">
         <label class="form-label">メモ（クライアントに表示）</label>
         <textarea id="editVideoMemo" class="form-input" rows="2" placeholder="例：まずはこちらから見てください">${esc(v.memo || '')}</textarea>
       </div>
@@ -713,15 +700,13 @@ function editVideo(id) {
 async function saveVideoEdit(id) {
   const title = document.getElementById('editVideoTitle').value.trim();
   const url = document.getElementById('editVideoUrl').value.trim();
-  const dateVal = document.getElementById('editVideoDate').value;
   if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
-  const date = dateVal ? dateVal.replace(/-/g, '.') : '';
   const memo = document.getElementById('editVideoMemo').value.trim();
   const section = document.getElementById('editVideoSection').value;
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'edit', id, title, url, date, memo, section })
+    body: JSON.stringify({ action: 'edit', id, title, url, memo, section })
   });
   showToast('保存しました');
   loadVideos();
