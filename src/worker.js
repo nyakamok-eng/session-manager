@@ -706,7 +706,8 @@ async function handleVideos(url, request, method, env) {
     if (action === "add") {
       const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
       const id = crypto.randomUUID().slice(0, 8);
-      videos.push({ id, title: body.title, url: body.url, memo: body.memo || "", description: body.description || "", section: body.section || "", hidden: false });
+      const type = ["video", "audio", "work"].includes(body.type) ? body.type : "video";
+      videos.push({ id, title: body.title, url: body.url, memo: body.memo || "", description: body.description || "", section: body.section || "", type, hidden: false });
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
     }
@@ -720,6 +721,7 @@ async function handleVideos(url, request, method, env) {
       if (body.memo !== undefined) item.memo = body.memo;
       if (body.description !== undefined) item.description = body.description;
       if (body.section !== undefined) item.section = body.section;
+      if (body.type !== undefined && ["video", "audio", "work"].includes(body.type)) item.type = body.type;
       if (body.hidden !== undefined) item.hidden = body.hidden;
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);

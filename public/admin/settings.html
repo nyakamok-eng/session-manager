@@ -100,12 +100,20 @@
           <select id="videoSection" class="form-input"></select>
         </div>
         <div class="form-group">
+          <label class="form-label">タイプ</label>
+          <select id="videoType" class="form-input">
+            <option value="video">動画</option>
+            <option value="audio">音声</option>
+            <option value="work">ワーク</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">タイトル</label>
           <input type="text" id="videoTitle" class="form-input" placeholder="例：第1回セミナー動画">
         </div>
         <div class="form-group">
-          <label class="form-label">YouTube URL</label>
-          <input type="url" id="videoUrl" class="form-input" placeholder="https://youtu.be/...">
+          <label class="form-label">URL</label>
+          <input type="url" id="videoUrl" class="form-input" placeholder="https://youtu.be/... または音声URL">
         </div>
         <div class="form-group">
           <label class="form-label">説明文</label>
@@ -630,6 +638,7 @@ function renderVideos(videos) {
       const titleOpacity = isHidden ? 'opacity:0.4;' : '';
       const visColor = isHidden ? 'color:#aaa;' : 'color:#2d8a4e;';
       const visLabel = isHidden ? '非公開' : '公開中';
+      const typeLabel = v.type === 'audio' ? '<span style="color:#e65100; font-size:11px; margin-right:4px;">音声</span>' : v.type === 'work' ? '<span style="color:#2d8a4e; font-size:11px; margin-right:4px;">ワーク</span>' : '<span style="color:#6d5ccd; font-size:11px; margin-right:4px;">動画</span>';
       return `
       <div style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
         <div style="display:flex; align-items:center; gap:6px;">
@@ -638,7 +647,7 @@ function renderVideos(videos) {
             <button onclick="moveVideo('${v.id}','down','${esc(sec)}')" style="border:none; background:none; cursor:pointer; padding:0; font-size:12px; color:${i === list.length - 1 ? '#ddd' : '#888'};" ${i === list.length - 1 ? 'disabled' : ''}>&#9660;</button>
           </div>
           <div style="flex:1; min-width:0; ${titleOpacity}">
-            <div style="font-size:13px; font-weight:500;">${esc(v.title)}</div>
+            <div style="font-size:13px; font-weight:500;">${typeLabel}${esc(v.title)}</div>
             <div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(v.url)}</div>
           </div>
           <button class="header-action" style="font-size:11px; ${visColor}" onclick="toggleVideoVis('${v.id}',${isHidden ? 'false' : 'true'})">${visLabel}</button>
@@ -662,16 +671,18 @@ async function addVideo() {
   const title = document.getElementById('videoTitle').value.trim();
   const url = document.getElementById('videoUrl').value.trim();
   if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
+  const type = document.getElementById('videoType').value;
   const description = document.getElementById('videoDesc').value.trim();
   const memo = document.getElementById('videoMemo').value.trim();
   const section = document.getElementById('videoSection').value;
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'add', title, url, description, memo, section })
+    body: JSON.stringify({ action: 'add', title, url, type, description, memo, section })
   });
   document.getElementById('videoTitle').value = '';
   document.getElementById('videoUrl').value = '';
+  document.getElementById('videoType').value = 'video';
   document.getElementById('videoDesc').value = '';
   document.getElementById('videoMemo').value = '';
   toggleVideoAdd();
@@ -683,6 +694,7 @@ function editVideo(id) {
   const v = allVideos.find(x => x.id === id);
   if (!v) return;
   const sectionOpts = '<option value="">(未分類)</option>' + videoSections.map(s => `<option value="${esc(s)}" ${(v.section || '') === s ? 'selected' : ''}>${esc(s)}</option>`).join('');
+  const vType = v.type || 'video';
   const el = document.getElementById('videoList');
   el.innerHTML = `
     <div style="background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:8px;">
@@ -691,11 +703,19 @@ function editVideo(id) {
         <select id="editVideoSection" class="form-input">${sectionOpts}</select>
       </div>
       <div class="form-group">
+        <label class="form-label">タイプ</label>
+        <select id="editVideoType" class="form-input">
+          <option value="video" ${vType === 'video' ? 'selected' : ''}>動画</option>
+          <option value="audio" ${vType === 'audio' ? 'selected' : ''}>音声</option>
+          <option value="work" ${vType === 'work' ? 'selected' : ''}>ワーク</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label class="form-label">タイトル</label>
         <input type="text" id="editVideoTitle" class="form-input" value="${esc(v.title)}">
       </div>
       <div class="form-group">
-        <label class="form-label">YouTube URL</label>
+        <label class="form-label">URL</label>
         <input type="url" id="editVideoUrl" class="form-input" value="${esc(v.url)}">
       </div>
       <div class="form-group">
@@ -718,13 +738,14 @@ async function saveVideoEdit(id) {
   const title = document.getElementById('editVideoTitle').value.trim();
   const url = document.getElementById('editVideoUrl').value.trim();
   if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
+  const type = document.getElementById('editVideoType').value;
   const description = document.getElementById('editVideoDesc').value.trim();
   const memo = document.getElementById('editVideoMemo').value.trim();
   const section = document.getElementById('editVideoSection').value;
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'edit', id, title, url, description, memo, section })
+    body: JSON.stringify({ action: 'edit', id, title, url, type, description, memo, section })
   });
   showToast('保存しました');
   loadVideos();
