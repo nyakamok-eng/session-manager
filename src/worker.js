@@ -683,7 +683,7 @@ async function handleVideos(url, request, method, env) {
       const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
       const access = clientData.videoAccess || [];
       if (access.length === 0) return Response.json({ error: "not_available" }, { status: 403 });
-      const permitted = videos.filter(v => access.includes(v.id));
+      const permitted = videos.filter(v => access.includes(v.id) && !v.hidden);
       const sections = await env.SESSION_KV.get("settings:videoSections", "json") || [];
       return Response.json({ videos: permitted, sections });
     }
@@ -706,7 +706,7 @@ async function handleVideos(url, request, method, env) {
     if (action === "add") {
       const videos = await env.SESSION_KV.get("settings:videoContents", "json") || [];
       const id = crypto.randomUUID().slice(0, 8);
-      videos.push({ id, title: body.title, url: body.url, date: body.date || "", memo: body.memo || "", section: body.section || "" });
+      videos.push({ id, title: body.title, url: body.url, memo: body.memo || "", description: body.description || "", section: body.section || "", hidden: false });
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
     }
@@ -717,9 +717,10 @@ async function handleVideos(url, request, method, env) {
       if (!item) return Response.json({ error: "not_found" }, { status: 404 });
       if (body.title !== undefined) item.title = body.title;
       if (body.url !== undefined) item.url = body.url;
-      if (body.date !== undefined) item.date = body.date;
       if (body.memo !== undefined) item.memo = body.memo;
+      if (body.description !== undefined) item.description = body.description;
       if (body.section !== undefined) item.section = body.section;
+      if (body.hidden !== undefined) item.hidden = body.hidden;
       await env.SESSION_KV.put("settings:videoContents", JSON.stringify(videos));
       return Response.json(videos);
     }

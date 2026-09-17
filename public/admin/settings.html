@@ -108,6 +108,10 @@
           <input type="url" id="videoUrl" class="form-input" placeholder="https://youtu.be/...">
         </div>
         <div class="form-group">
+          <label class="form-label">説明文</label>
+          <textarea id="videoDesc" class="form-input" rows="2" placeholder="この動画の内容説明"></textarea>
+        </div>
+        <div class="form-group">
           <label class="form-label">メモ（クライアントに表示）</label>
           <textarea id="videoMemo" class="form-input" rows="2" placeholder="例：まずはこちらから見てください"></textarea>
         </div>
@@ -621,23 +625,30 @@ function renderVideos(videos) {
     if (!list || list.length === 0) return;
     const label = sec || '未分類';
     html += `<div style="margin-top:12px; margin-bottom:4px; font-size:13px; font-weight:700; color:#2d8a4e; border-bottom:2px solid #2d8a4e; padding-bottom:4px;">${esc(label)}</div>`;
-    html += list.map((v, i) => `
+    html += list.map((v, i) => {
+      const isHidden = v.hidden === true;
+      const titleOpacity = isHidden ? 'opacity:0.4;' : '';
+      const visColor = isHidden ? 'color:#aaa;' : 'color:#2d8a4e;';
+      const visLabel = isHidden ? '非公開' : '公開中';
+      return `
       <div style="padding:6px 0; border-bottom:1px solid #f0f0f0;">
         <div style="display:flex; align-items:center; gap:6px;">
           <div style="display:flex; flex-direction:column; gap:1px;">
             <button onclick="moveVideo('${v.id}','up','${esc(sec)}')" style="border:none; background:none; cursor:pointer; padding:0; font-size:12px; color:${i === 0 ? '#ddd' : '#888'};" ${i === 0 ? 'disabled' : ''}>&#9650;</button>
             <button onclick="moveVideo('${v.id}','down','${esc(sec)}')" style="border:none; background:none; cursor:pointer; padding:0; font-size:12px; color:${i === list.length - 1 ? '#ddd' : '#888'};" ${i === list.length - 1 ? 'disabled' : ''}>&#9660;</button>
           </div>
-          <div style="flex:1; min-width:0;">
+          <div style="flex:1; min-width:0; ${titleOpacity}">
             <div style="font-size:13px; font-weight:500;">${esc(v.title)}</div>
             <div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(v.url)}</div>
           </div>
+          <button class="header-action" style="font-size:11px; ${visColor}" onclick="toggleVideoVis('${v.id}',${isHidden ? 'false' : 'true'})">${visLabel}</button>
           <button class="header-action" onclick="editVideo('${v.id}')">編集</button>
           <button class="header-action" style="color:#e53e3e;" onclick="deleteVideo('${v.id}')">削除</button>
         </div>
-        ${v.memo ? '<div style="font-size:11px; color:#2d8a4e; margin-top:3px; padding-left:24px;">' + esc(v.memo) + '</div>' : ''}
+        ${v.description ? '<div style="font-size:11px; color:#555; margin-top:3px; padding-left:24px;">' + esc(v.description) + '</div>' : ''}
+        ${v.memo ? '<div style="font-size:11px; color:#2d8a4e; margin-top:2px; padding-left:24px;">' + esc(v.memo) + '</div>' : ''}
       </div>
-    `).join('');
+    `}).join('');
   });
   el.innerHTML = html;
 }
@@ -651,15 +662,17 @@ async function addVideo() {
   const title = document.getElementById('videoTitle').value.trim();
   const url = document.getElementById('videoUrl').value.trim();
   if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
+  const description = document.getElementById('videoDesc').value.trim();
   const memo = document.getElementById('videoMemo').value.trim();
   const section = document.getElementById('videoSection').value;
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'add', title, url, memo, section })
+    body: JSON.stringify({ action: 'add', title, url, description, memo, section })
   });
   document.getElementById('videoTitle').value = '';
   document.getElementById('videoUrl').value = '';
+  document.getElementById('videoDesc').value = '';
   document.getElementById('videoMemo').value = '';
   toggleVideoAdd();
   showToast('動画を追加しました');
@@ -686,6 +699,10 @@ function editVideo(id) {
         <input type="url" id="editVideoUrl" class="form-input" value="${esc(v.url)}">
       </div>
       <div class="form-group">
+        <label class="form-label">説明文</label>
+        <textarea id="editVideoDesc" class="form-input" rows="2" placeholder="この動画の内容説明">${esc(v.description || '')}</textarea>
+      </div>
+      <div class="form-group">
         <label class="form-label">メモ（クライアントに表示）</label>
         <textarea id="editVideoMemo" class="form-input" rows="2" placeholder="例：まずはこちらから見てください">${esc(v.memo || '')}</textarea>
       </div>
@@ -701,14 +718,25 @@ async function saveVideoEdit(id) {
   const title = document.getElementById('editVideoTitle').value.trim();
   const url = document.getElementById('editVideoUrl').value.trim();
   if (!title || !url) { alert('タイトルとURLを入力してください'); return; }
+  const description = document.getElementById('editVideoDesc').value.trim();
   const memo = document.getElementById('editVideoMemo').value.trim();
   const section = document.getElementById('editVideoSection').value;
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'edit', id, title, url, memo, section })
+    body: JSON.stringify({ action: 'edit', id, title, url, description, memo, section })
   });
   showToast('保存しました');
+  loadVideos();
+}
+
+async function toggleVideoVis(id, hide) {
+  await fetch(API + '/videos', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'edit', id, hidden: hide })
+  });
+  showToast(hide ? '非公開にしました' : '公開しました');
   loadVideos();
 }
 
