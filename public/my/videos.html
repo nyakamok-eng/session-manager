@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>動画コンテンツ</title>
+<title>動画・実践</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -62,7 +62,7 @@ body {
 <div class="frame">
   <div class="page-header">
     <a class="back-btn" id="backLink" href="#">&larr; 戻る</a>
-    <div class="page-title">動画コンテンツ</div>
+    <div class="page-title">動画・実践</div>
   </div>
 
   <div id="videoMemoArea" style="display:none; padding:16px 16px 0;"></div>
@@ -94,7 +94,7 @@ async function loadVideos() {
   try {
     const res = await fetch(API + '/videos?token=' + encodeURIComponent(token));
     if (!res.ok) {
-      document.getElementById('videoList').innerHTML = '<div class="empty">動画コンテンツはありません</div>';
+      document.getElementById('videoList').innerHTML = '<div class="empty">動画・実践はありません</div>';
       return;
     }
     const data = await res.json();
@@ -122,7 +122,7 @@ async function loadVideoMemo() {
 function renderVideos(videos) {
   const el = document.getElementById('videoList');
   if (!videos || videos.length === 0) {
-    el.innerHTML = '<div class="empty">動画コンテンツはありません</div>';
+    el.innerHTML = '<div class="empty">動画・実践はありません</div>';
     return;
   }
 

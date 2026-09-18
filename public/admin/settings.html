@@ -77,11 +77,11 @@
 
   <div class="card mt-16">
     <div class="card-header flex justify-between items-center">
-      <span>動画コンテンツ管理</span>
+      <span>動画・実践管理</span>
       <button class="header-action" onclick="toggleVideoAdd()">+ 追加</button>
     </div>
     <div class="card-body">
-      <p class="text-sm text-muted mb-8">クライアントに公開する動画コンテンツを管理します。クライアントごとの公開設定はクライアント詳細ページで行います。</p>
+      <p class="text-sm text-muted mb-8">クライアントに公開する動画・実践を管理します。クライアントごとの公開設定はクライアント詳細ページで行います。</p>
       <div style="background:#ecfdf5; border-radius:8px; padding:12px; margin-bottom:12px; border-left:3px solid var(--primary);">
         <div class="form-label" style="margin-bottom:4px;">ページ上部メモ（クライアントに表示）</div>
         <textarea id="videoPageMemo" class="form-input" rows="2" placeholder="例：動画は上から順番に見てください" style="margin-bottom:8px;"></textarea>
@@ -536,7 +536,7 @@ async function loadVideos() {
 function renderVideos(videos) {
   const el = document.getElementById('videoList');
   if (videos.length === 0) {
-    el.innerHTML = '<div class="text-sm text-muted">動画コンテンツがまだありません</div>';
+    el.innerHTML = '<div class="text-sm text-muted">動画・実践がまだありません</div>';
     return;
   }
   const grouped = {};
@@ -689,7 +689,7 @@ async function moveVideo(id, direction, section) {
 }
 
 async function deleteVideo(id) {
-  if (!confirm('この動画コンテンツを削除しますか？')) return;
+  if (!confirm('この動画・実践を削除しますか？')) return;
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
