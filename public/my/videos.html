@@ -99,9 +99,8 @@ async function loadVideos() {
     }
     const data = await res.json();
     const videos = data.videos || data;
-    const sections = data.sections || [];
     loadVideoMemo();
-    renderVideos(videos, sections);
+    renderVideos(videos);
   } catch (e) {
     document.getElementById('videoList').innerHTML = '<div class="empty">接続エラー</div>';
   }
@@ -120,7 +119,7 @@ async function loadVideoMemo() {
   } catch (e) {}
 }
 
-function renderVideos(videos, sections) {
+function renderVideos(videos) {
   const el = document.getElementById('videoList');
   if (!videos || videos.length === 0) {
     el.innerHTML = '<div class="empty">動画コンテンツはありません</div>';
@@ -128,15 +127,14 @@ function renderVideos(videos, sections) {
   }
 
   const grouped = {};
-  sections.forEach(s => { grouped[s] = []; });
-  grouped[''] = [];
+  const sectionOrder = [];
   videos.forEach(v => {
     const sec = v.section || '';
-    if (!grouped[sec]) grouped[sec] = [];
+    if (!grouped[sec]) { grouped[sec] = []; sectionOrder.push(sec); }
     grouped[sec].push(v);
   });
 
-  const order = [...sections, ''];
+  const order = sectionOrder;
   let html = '';
   order.forEach(sec => {
     const list = grouped[sec];
