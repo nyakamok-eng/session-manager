@@ -109,6 +109,10 @@
           <input type="url" id="videoUrl" class="form-input" placeholder="https://youtu.be/... または音声URL">
         </div>
         <div class="form-group">
+          <label class="form-label">所要時間</label>
+          <input type="text" id="videoDuration" class="form-input" placeholder="例：5分">
+        </div>
+        <div class="form-group">
           <label class="form-label">説明文</label>
           <textarea id="videoDesc" class="form-input" rows="2" placeholder="この動画の内容説明"></textarea>
         </div>
@@ -594,16 +598,18 @@ async function addVideo() {
   const description = document.getElementById('videoDesc').value.trim();
   const memo = document.getElementById('videoMemo').value.trim();
   const section = document.getElementById('videoSection').value;
+  const duration = document.getElementById('videoDuration').value.trim();
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'add', title, url, type, description, memo, section })
+    body: JSON.stringify({ action: 'add', title, url, type, description, memo, section, duration })
   });
   document.getElementById('videoTitle').value = '';
   document.getElementById('videoUrl').value = '';
   document.getElementById('videoType').value = 'video';
   document.getElementById('videoDesc').value = '';
   document.getElementById('videoMemo').value = '';
+  document.getElementById('videoDuration').value = '';
   toggleVideoAdd();
   showToast('動画を追加しました');
   loadVideos();
@@ -637,6 +643,10 @@ function editVideo(id) {
         <input type="url" id="editVideoUrl" class="form-input" value="${esc(v.url)}">
       </div>
       <div class="form-group">
+        <label class="form-label">所要時間</label>
+        <input type="text" id="editVideoDuration" class="form-input" value="${esc(v.duration || '')}" placeholder="例：5分">
+      </div>
+      <div class="form-group">
         <label class="form-label">説明文</label>
         <textarea id="editVideoDesc" class="form-input" rows="2" placeholder="この動画の内容説明">${esc(v.description || '')}</textarea>
       </div>
@@ -660,10 +670,11 @@ async function saveVideoEdit(id) {
   const description = document.getElementById('editVideoDesc').value.trim();
   const memo = document.getElementById('editVideoMemo').value.trim();
   const section = document.getElementById('editVideoSection').value;
+  const duration = document.getElementById('editVideoDuration').value.trim();
   await fetch(API + '/videos', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'edit', id, title, url, type, description, memo, section })
+    body: JSON.stringify({ action: 'edit', id, title, url, type, description, memo, section, duration })
   });
   showToast('保存しました');
   loadVideos();
