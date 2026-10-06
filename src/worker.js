@@ -1025,7 +1025,8 @@ async function handleCleanup(url, request, method, env) {
       data.completed.push({
         number: data.completed.length + 1,
         date: body.date || new Date().toISOString().split("T")[0].replace(/-/g, "."),
-        videoUrl: body.videoUrl || ""
+        videoUrl: body.videoUrl || "",
+        memo: body.memo || ""
       });
       await env.SESSION_KV.put("cleanup:" + body.clientId, JSON.stringify(data));
       return Response.json(data);
@@ -1038,6 +1039,7 @@ async function handleCleanup(url, request, method, env) {
       if (!session) return Response.json({ error: "not_found" }, { status: 404 });
       if (body.date) session.date = body.date;
       if (body.videoUrl !== undefined) session.videoUrl = body.videoUrl;
+      if (body.memo !== undefined) session.memo = body.memo;
       await env.SESSION_KV.put("cleanup:" + body.clientId, JSON.stringify(data));
       return Response.json(data);
     }

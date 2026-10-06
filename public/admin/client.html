@@ -619,6 +619,10 @@ function renderCleanup(data, area) {
           <label class="form-label">動画アーカイブURL（任意）</label>
           <input type="url" id="cleanupVideoUrl" class="form-input" placeholder="https://youtu.be/...">
         </div>
+        <div class="form-group">
+          <label class="form-label">メモ（任意）</label>
+          <textarea id="cleanupMemo" class="form-input" rows="2" placeholder="セッションのメモ"></textarea>
+        </div>
         <div class="flex gap-8">
           <button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('cleanupCompleteForm').style.display='none'">キャンセル</button>
           <button class="btn btn-primary" style="flex:1;" onclick="completeCleanupSession()">完了を記録</button>
@@ -637,6 +641,7 @@ function renderCleanup(data, area) {
           <div style="flex:1; min-width:0;">
             <div style="font-size:13px; font-weight:500;">第${s.number}回</div>
             ${s.videoUrl ? '<div style="font-size:10px; color:#888; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + esc(s.videoUrl) + '</div>' : ''}
+            ${s.memo ? '<div style="font-size:11px; color:#555; margin-top:2px;">' + esc(s.memo) + '</div>' : ''}
           </div>
           <div style="font-size:11px; color:#888; white-space:nowrap;">${esc(s.date)}</div>
           <button class="header-action" onclick="editCleanupSession(${s.number})">編集</button>
@@ -672,10 +677,11 @@ async function toggleCleanup(enabled) {
 async function completeCleanupSession() {
   const date = document.getElementById('cleanupDate').value.replace(/-/g, '.');
   const videoUrl = document.getElementById('cleanupVideoUrl').value.trim();
+  const memo = document.getElementById('cleanupMemo').value.trim();
   await fetch(API + '/cleanup', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'complete', clientId: client.id, date, videoUrl })
+    body: JSON.stringify({ action: 'complete', clientId: client.id, date, videoUrl, memo })
   });
   showToast('完了を記録しました');
   loadCleanup();
@@ -701,6 +707,10 @@ async function editCleanupSession(number) {
           <label class="form-label">動画アーカイブURL</label>
           <input type="url" id="editCleanupVideo" class="form-input" value="${esc(s.videoUrl || '')}">
         </div>
+        <div class="form-group">
+          <label class="form-label">メモ</label>
+          <textarea id="editCleanupMemo" class="form-input" rows="2">${esc(s.memo || '')}</textarea>
+        </div>
         <div class="flex gap-8">
           <button class="btn btn-outline" style="flex:1;" onclick="loadCleanup()">キャンセル</button>
           <button class="btn btn-primary" style="flex:1;" onclick="saveCleanupEdit(${number})">保存</button>
@@ -715,10 +725,11 @@ async function editCleanupSession(number) {
 async function saveCleanupEdit(number) {
   const date = document.getElementById('editCleanupDate').value.replace(/-/g, '.');
   const videoUrl = document.getElementById('editCleanupVideo').value.trim();
+  const memo = document.getElementById('editCleanupMemo').value.trim();
   await fetch(API + '/cleanup', {
     method: 'POST',
     headers: headers(),
-    body: JSON.stringify({ action: 'editSession', clientId: client.id, number, date, videoUrl })
+    body: JSON.stringify({ action: 'editSession', clientId: client.id, number, date, videoUrl, memo })
   });
   showToast('保存しました');
   loadCleanup();
