@@ -82,6 +82,11 @@
     </div>
     <div class="card-body">
       <p class="text-sm text-muted mb-8">全クライアント共通の日程です。クライアントごとの公開設定はクライアント詳細ページで行います。</p>
+      <div style="background:#ecfdf5; border-radius:8px; padding:12px; margin-bottom:12px; border-left:3px solid var(--primary);">
+        <div class="form-label" style="margin-bottom:4px;">参加Zoomリンク（共通）</div>
+        <input type="url" id="scheduleZoomUrl" class="form-input" placeholder="https://us06web.zoom.us/j/..." style="margin-bottom:8px;">
+        <button class="btn btn-primary" style="font-size:12px; padding:6px 16px;" onclick="saveScheduleZoomUrl()">保存</button>
+      </div>
       <div id="scheduleAddForm" style="display:none; background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:12px;">
         <div class="form-group">
           <label class="form-label">日付</label>
@@ -620,7 +625,10 @@ async function loadScheduleItems() {
   if (!el) return;
   try {
     const res = await fetch(API + '/schedule', { headers: headers() });
-    const items = res.ok ? await res.json() : [];
+    const data = res.ok ? await res.json() : { items: [], zoomUrl: '' };
+    const items = data.items || data;
+    const zoomUrlEl = document.getElementById('scheduleZoomUrl');
+    if (zoomUrlEl && data.zoomUrl) zoomUrlEl.value = data.zoomUrl;
     if (items.length === 0) {
       el.innerHTML = '<div class="text-sm text-muted">日程がまだありません</div>';
       return;
@@ -642,6 +650,16 @@ async function loadScheduleItems() {
   } catch (e) {
     el.innerHTML = '<div class="text-sm text-muted">読み込みエラー</div>';
   }
+}
+
+async function saveScheduleZoomUrl() {
+  const zoomUrl = document.getElementById('scheduleZoomUrl').value.trim();
+  await fetch(API + '/schedule', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'setZoomUrl', zoomUrl })
+  });
+  showToast('Zoomリンクを保存しました');
 }
 
 function toggleScheduleAdd() {
@@ -669,7 +687,8 @@ async function addScheduleItem() {
 
 async function editScheduleItem(id) {
   const res = await fetch(API + '/schedule', { headers: headers() });
-  const items = await res.json();
+  const data = await res.json();
+  const items = data.items || data;
   const item = items.find(i => i.id === id);
   if (!item) return;
   const el = document.getElementById('scheduleList');

@@ -1070,11 +1070,13 @@ async function handleSchedule(url, request, method, env) {
       const client = await env.SESSION_KV.get("client:" + clientId, "json");
       if (!client || !client.scheduleEnabled) return Response.json({ error: "not_available" }, { status: 403 });
       const items = await env.SESSION_KV.get("settings:schedule", "json") || [];
-      return Response.json(items);
+      const zoomUrl = await env.SESSION_KV.get("settings:scheduleZoomUrl") || "";
+      return Response.json({ items, zoomUrl });
     }
     if (!(await verifyAdmin(request, env))) return Response.json({ error: "unauthorized" }, { status: 401 });
     const items = await env.SESSION_KV.get("settings:schedule", "json") || [];
-    return Response.json(items);
+    const zoomUrl = await env.SESSION_KV.get("settings:scheduleZoomUrl") || "";
+    return Response.json({ items, zoomUrl });
   }
 
   if (method === "POST") {
@@ -1087,6 +1089,11 @@ async function handleSchedule(url, request, method, env) {
       if (!client) return Response.json({ error: "not_found" }, { status: 404 });
       client.scheduleEnabled = !!body.enabled;
       await env.SESSION_KV.put("client:" + body.clientId, JSON.stringify(client));
+      return Response.json({ ok: true });
+    }
+
+    if (action === "setZoomUrl") {
+      await env.SESSION_KV.put("settings:scheduleZoomUrl", body.zoomUrl || "");
       return Response.json({ ok: true });
     }
 
