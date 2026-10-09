@@ -1069,16 +1069,12 @@ async function handleSchedule(url, request, method, env) {
       if (!clientId) return Response.json({ error: "not_found" }, { status: 404 });
       const client = await env.SESSION_KV.get("client:" + clientId, "json");
       if (!client || !client.scheduleEnabled) return Response.json({ error: "not_available" }, { status: 403 });
-      const items = await env.SESSION_KV.get("schedule:" + clientId, "json") || [];
+      const items = await env.SESSION_KV.get("settings:schedule", "json") || [];
       return Response.json(items);
     }
-    const clientId = url.searchParams.get("clientId");
-    if (clientId) {
-      if (!(await verifyAdmin(request, env))) return Response.json({ error: "unauthorized" }, { status: 401 });
-      const items = await env.SESSION_KV.get("schedule:" + clientId, "json") || [];
-      return Response.json(items);
-    }
-    return Response.json({ error: "missing_params" }, { status: 400 });
+    if (!(await verifyAdmin(request, env))) return Response.json({ error: "unauthorized" }, { status: 401 });
+    const items = await env.SESSION_KV.get("settings:schedule", "json") || [];
+    return Response.json(items);
   }
 
   if (method === "POST") {
@@ -1095,27 +1091,27 @@ async function handleSchedule(url, request, method, env) {
     }
 
     if (action === "add") {
-      const items = await env.SESSION_KV.get("schedule:" + body.clientId, "json") || [];
+      const items = await env.SESSION_KV.get("settings:schedule", "json") || [];
       items.push({ id: crypto.randomUUID().slice(0, 8), date: body.date || "", title: body.title || "", memo: body.memo || "" });
-      await env.SESSION_KV.put("schedule:" + body.clientId, JSON.stringify(items));
+      await env.SESSION_KV.put("settings:schedule", JSON.stringify(items));
       return Response.json(items);
     }
 
     if (action === "edit") {
-      const items = await env.SESSION_KV.get("schedule:" + body.clientId, "json") || [];
+      const items = await env.SESSION_KV.get("settings:schedule", "json") || [];
       const item = items.find(i => i.id === body.id);
       if (!item) return Response.json({ error: "not_found" }, { status: 404 });
       if (body.date !== undefined) item.date = body.date;
       if (body.title !== undefined) item.title = body.title;
       if (body.memo !== undefined) item.memo = body.memo;
-      await env.SESSION_KV.put("schedule:" + body.clientId, JSON.stringify(items));
+      await env.SESSION_KV.put("settings:schedule", JSON.stringify(items));
       return Response.json(items);
     }
 
     if (action === "delete") {
-      let items = await env.SESSION_KV.get("schedule:" + body.clientId, "json") || [];
+      let items = await env.SESSION_KV.get("settings:schedule", "json") || [];
       items = items.filter(i => i.id !== body.id);
-      await env.SESSION_KV.put("schedule:" + body.clientId, JSON.stringify(items));
+      await env.SESSION_KV.put("settings:schedule", JSON.stringify(items));
       return Response.json(items);
     }
 

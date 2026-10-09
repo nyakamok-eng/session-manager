@@ -77,6 +77,35 @@
 
   <div class="card mt-16">
     <div class="card-header flex justify-between items-center">
+      <span>今後の日程管理</span>
+      <button class="header-action" onclick="toggleScheduleAdd()">+ 追加</button>
+    </div>
+    <div class="card-body">
+      <p class="text-sm text-muted mb-8">全クライアント共通の日程です。クライアントごとの公開設定はクライアント詳細ページで行います。</p>
+      <div id="scheduleAddForm" style="display:none; background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:12px;">
+        <div class="form-group">
+          <label class="form-label">日付</label>
+          <input type="date" id="scheduleDate" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label">内容</label>
+          <input type="text" id="scheduleTitle" class="form-input" placeholder="例：成功シェア会">
+        </div>
+        <div class="form-group">
+          <label class="form-label">メモ（任意）</label>
+          <input type="text" id="scheduleMemo" class="form-input" placeholder="例：Zoom 13:00〜14:00">
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-outline" style="flex:1;" onclick="toggleScheduleAdd()">キャンセル</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="addScheduleItem()">追加</button>
+        </div>
+      </div>
+      <div id="scheduleList"></div>
+    </div>
+  </div>
+
+  <div class="card mt-16">
+    <div class="card-header flex justify-between items-center">
       <span>動画・実践管理</span>
       <button class="header-action" onclick="toggleVideoAdd()">+ 追加</button>
     </div>
@@ -506,6 +535,7 @@ loadExportKey();
 loadErrorLogs();
 loadCleanupSettings();
 loadBehaviorChoices();
+loadScheduleItems();
 loadVideos();
 loadVideoPageMemo();
 
@@ -583,6 +613,111 @@ function renderVideos(videos) {
     `}).join('');
   });
   el.innerHTML = html;
+}
+
+async function loadScheduleItems() {
+  const el = document.getElementById('scheduleList');
+  if (!el) return;
+  try {
+    const res = await fetch(API + '/schedule', { headers: headers() });
+    const items = res.ok ? await res.json() : [];
+    if (items.length === 0) {
+      el.innerHTML = '<div class="text-sm text-muted">日程がまだありません</div>';
+      return;
+    }
+    let html = '';
+    items.forEach(item => {
+      const dateStr = item.date ? item.date.replace(/-/g, '/') : '';
+      html += `<div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; font-weight:500;">${esc(item.title)}</div>
+          ${item.memo ? '<div style="font-size:11px; color:#555;">' + esc(item.memo) + '</div>' : ''}
+        </div>
+        <div style="font-size:11px; color:#888; white-space:nowrap;">${esc(dateStr)}</div>
+        <button class="header-action" onclick="editScheduleItem('${item.id}')">編集</button>
+        <button class="header-action" style="color:#e53e3e;" onclick="deleteScheduleItem('${item.id}')">削除</button>
+      </div>`;
+    });
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<div class="text-sm text-muted">読み込みエラー</div>';
+  }
+}
+
+function toggleScheduleAdd() {
+  const form = document.getElementById('scheduleAddForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function addScheduleItem() {
+  const title = document.getElementById('scheduleTitle').value.trim();
+  if (!title) { alert('内容を入力してください'); return; }
+  const date = document.getElementById('scheduleDate').value;
+  const memo = document.getElementById('scheduleMemo').value.trim();
+  await fetch(API + '/schedule', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'add', date, title, memo })
+  });
+  document.getElementById('scheduleTitle').value = '';
+  document.getElementById('scheduleDate').value = '';
+  document.getElementById('scheduleMemo').value = '';
+  toggleScheduleAdd();
+  showToast('日程を追加しました');
+  loadScheduleItems();
+}
+
+async function editScheduleItem(id) {
+  const res = await fetch(API + '/schedule', { headers: headers() });
+  const items = await res.json();
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  const el = document.getElementById('scheduleList');
+  el.innerHTML = `
+    <div style="background:var(--primary-light); border-radius:8px; padding:12px;">
+      <div class="form-group">
+        <label class="form-label">日付</label>
+        <input type="date" id="editScheduleDate" class="form-input" value="${item.date || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">内容</label>
+        <input type="text" id="editScheduleTitle" class="form-input" value="${esc(item.title)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ</label>
+        <input type="text" id="editScheduleMemo" class="form-input" value="${esc(item.memo || '')}">
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-outline" style="flex:1;" onclick="loadScheduleItems()">キャンセル</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="saveScheduleEdit('${id}')">保存</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveScheduleEdit(id) {
+  const title = document.getElementById('editScheduleTitle').value.trim();
+  if (!title) { alert('内容を入力してください'); return; }
+  const date = document.getElementById('editScheduleDate').value;
+  const memo = document.getElementById('editScheduleMemo').value.trim();
+  await fetch(API + '/schedule', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'edit', id, date, title, memo })
+  });
+  showToast('保存しました');
+  loadScheduleItems();
+}
+
+async function deleteScheduleItem(id) {
+  if (!confirm('この日程を削除しますか？')) return;
+  await fetch(API + '/schedule', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify({ action: 'delete', id })
+  });
+  showToast('削除しました');
+  loadScheduleItems();
 }
 
 function toggleVideoAdd() {
