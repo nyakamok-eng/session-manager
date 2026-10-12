@@ -202,6 +202,31 @@ async function handleClients(url, request, method, env) {
       data.price += addPrice;
     }
 
+    if (body.action === "editTerm") {
+      const idx = parseInt(body.termIndex);
+      if (data.terms && data.terms[idx]) {
+        const old = data.terms[idx];
+        const newSessions = parseInt(body.sessions) || old.sessions;
+        const newPrice = parseInt(body.price) || 0;
+        data.totalSessions += (newSessions - old.sessions);
+        data.price += (newPrice - (old.price || 0));
+        data.terms[idx].name = body.name || old.name;
+        data.terms[idx].sessions = newSessions;
+        data.terms[idx].price = newPrice;
+        data.terms[idx].memo = body.memo || "";
+      }
+    }
+
+    if (body.action === "deleteTerm") {
+      const idx = parseInt(body.termIndex);
+      if (data.terms && data.terms[idx] && idx > 0) {
+        const removed = data.terms[idx];
+        data.totalSessions -= removed.sessions;
+        data.price -= (removed.price || 0);
+        data.terms.splice(idx, 1);
+      }
+    }
+
     await env.SESSION_KV.put("client:" + body.id, JSON.stringify(data));
 
     const list = await env.SESSION_KV.get("client:list", "json") || [];

@@ -394,6 +394,8 @@ function renderTermsList() {
     if (term.memo) html += '<div style="font-size:11px; color:#555;">' + esc(term.memo) + '</div>';
     html += '</div>';
     html += '<div style="font-size:10px; color:#aaa; white-space:nowrap;">' + (term.addedAt ? term.addedAt.split('T')[0].replace(/-/g, '/') : '') + '</div>';
+    html += '<button class="header-action" onclick="editTerm(' + i + ')">編集</button>';
+    if (i > 0) html += '<button class="header-action" style="color:#e53e3e;" onclick="deleteTerm(' + i + ')">削除</button>';
     html += '</div>';
   });
   return html;
@@ -416,6 +418,67 @@ async function addTerm() {
     body: JSON.stringify({ id: client.id, action: 'addTerm', addSessions, termName, addPrice, memo })
   });
   showToast('セッションを追加しました');
+  load();
+}
+
+function editTerm(index) {
+  const term = client.terms[index];
+  if (!term) return;
+  const area = document.getElementById('addTermForm').parentElement;
+  const editHtml = `
+    <div id="editTermForm" style="background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:12px;">
+      <div class="form-group">
+        <label class="form-label">期の名前</label>
+        <input type="text" id="editTermName" class="form-input" value="${esc(term.name)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">回数</label>
+        <input type="number" id="editTermSessions" class="form-input" value="${term.sessions}" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">金額</label>
+        <input type="number" id="editTermPrice" class="form-input" value="${term.price || 0}" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">メモ</label>
+        <input type="text" id="editTermMemo" class="form-input" value="${esc(term.memo || '')}">
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-outline" style="flex:1;" onclick="load()">キャンセル</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="saveTerm(${index})">保存</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('addTermForm').style.display = 'none';
+  const existing = document.getElementById('editTermForm');
+  if (existing) existing.remove();
+  area.insertAdjacentHTML('afterbegin', editHtml);
+}
+
+async function saveTerm(index) {
+  const name = document.getElementById('editTermName').value.trim();
+  const sessions = parseInt(document.getElementById('editTermSessions').value);
+  const price = parseInt(document.getElementById('editTermPrice').value) || 0;
+  const memo = document.getElementById('editTermMemo').value.trim();
+  if (!name || !sessions || sessions <= 0) { alert('名前と回数を入力してください'); return; }
+  await fetch(API + '/clients', {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ id: client.id, action: 'editTerm', termIndex: index, name, sessions, price, memo })
+  });
+  showToast('保存しました');
+  load();
+}
+
+async function deleteTerm(index) {
+  const term = client.terms[index];
+  if (!confirm(esc(term.name) + ' を削除しますか？回数も減ります。')) return;
+  await fetch(API + '/clients', {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ id: client.id, action: 'deleteTerm', termIndex: index })
+  });
+  showToast('削除しました');
   load();
 }
 
