@@ -113,6 +113,7 @@ function render() {
         </div>
         <div class="text-sm text-muted mt-8">${client.sessions.length}回完了 / ${client.totalSessions}回中</div>
         ${client.expiryDate ? '<div class="text-sm mt-8" style="color:#e53e3e;">使用期限: ' + esc(client.expiryDate) + '</div>' : ''}
+        ${client.terms && client.terms.length > 1 ? renderTermsSummary() : ''}
       </div>
     </div>
 
@@ -149,6 +150,42 @@ function render() {
     </div>
   `;
 
+  html += `
+    <div class="mt-16">
+      <div class="card">
+        <div class="card-header flex justify-between items-center">
+          <span>セッション追加購入</span>
+          <button class="header-action" onclick="toggleAddTerm()">+ 追加</button>
+        </div>
+        <div class="card-body">
+          <div id="addTermForm" style="display:none; background:var(--primary-light); border-radius:8px; padding:12px; margin-bottom:12px;">
+            <div class="form-group">
+              <label class="form-label">追加回数</label>
+              <input type="number" id="addTermSessions" class="form-input" placeholder="例：4" min="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">期の名前（任意）</label>
+              <input type="text" id="addTermName" class="form-input" placeholder="例：2期目">
+            </div>
+            <div class="form-group">
+              <label class="form-label">金額（任意）</label>
+              <input type="number" id="addTermPrice" class="form-input" placeholder="例：200000" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">メモ（任意）</label>
+              <input type="text" id="addTermMemo" class="form-input" placeholder="例：継続割引適用">
+            </div>
+            <div class="flex gap-8">
+              <button class="btn btn-outline" style="flex:1;" onclick="toggleAddTerm()">キャンセル</button>
+              <button class="btn btn-primary" style="flex:1;" onclick="addTerm()">追加</button>
+            </div>
+          </div>
+          ${renderTermsList()}
+        </div>
+      </div>
+    </div>
+  `;
+
   if (r > 0) {
     const today = new Date().toISOString().split('T')[0];
     html += `
@@ -171,33 +208,43 @@ function render() {
       <div class="card-body" style="padding:8px 16px;">
   `;
 
-  for (let i = 0; i < client.totalSessions; i++) {
-    const s = client.sessions[i];
-    if (s) {
-      html += `
-        <div class="session-row">
-          <div class="flex items-center gap-8">
-            <span class="session-num">${s.number}回目</span>
-            <span class="session-date">${esc(s.date)}</span>
-          </div>
-          <div class="flex items-center gap-8">
-            ${s.fileUrl
-              ? '<a href="' + esc(s.fileUrl) + '" target="_blank" class="session-file">' + esc(s.fileName || '資料') + '</a>'
-              : '<button class="header-action" onclick="uploadFile(' + s.number + ')">資料UP</button>'
-            }
-            <button class="header-action" style="color:#e53e3e;" onclick="deleteSession(${s.number})">削除</button>
-          </div>
-        </div>
-      `;
-    } else {
-      html += `
-        <div class="session-row session-pending">
-          <span>${i + 1}回目</span>
-          <span class="text-sm">未実施</span>
-        </div>
-      `;
+  const terms = client.terms || [{ name: '', sessions: client.totalSessions }];
+  let sessionIdx = 0;
+  terms.forEach((term, tIdx) => {
+    if (terms.length > 1) {
+      const termDone = Math.min(Math.max(client.sessions.length - sessionIdx, 0), term.sessions);
+      html += '<div style="font-size:12px; font-weight:700; color:var(--green); margin:' + (tIdx > 0 ? '16' : '4') + 'px 0 6px; padding-bottom:4px; border-bottom:2px solid #d4edda;">' + esc(term.name) + ' （' + termDone + '/' + term.sessions + '回完了）</div>';
     }
-  }
+    for (let j = 0; j < term.sessions; j++) {
+      const globalIdx = sessionIdx + j;
+      const s = client.sessions[globalIdx];
+      if (s) {
+        html += `
+          <div class="session-row">
+            <div class="flex items-center gap-8">
+              <span class="session-num">${s.number}回目</span>
+              <span class="session-date">${esc(s.date)}</span>
+            </div>
+            <div class="flex items-center gap-8">
+              ${s.fileUrl
+                ? '<a href="' + esc(s.fileUrl) + '" target="_blank" class="session-file">' + esc(s.fileName || '資料') + '</a>'
+                : '<button class="header-action" onclick="uploadFile(' + s.number + ')">資料UP</button>'
+              }
+              <button class="header-action" style="color:#e53e3e;" onclick="deleteSession(${s.number})">削除</button>
+            </div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="session-row session-pending">
+            <span>${globalIdx + 1}回目</span>
+            <span class="text-sm">未実施</span>
+          </div>
+        `;
+      }
+    }
+    sessionIdx += term.sessions;
+  });
 
   html += '</div></div>';
 
@@ -320,6 +367,56 @@ async function saveEdit() {
   closeEdit();
   showToast('保存しました');
   await load();
+}
+
+function renderTermsSummary() {
+  if (!client.terms || client.terms.length <= 1) return '';
+  let html = '<div style="margin-top:12px; padding-top:8px; border-top:1px solid #e2e8f0;">';
+  let idx = 0;
+  client.terms.forEach(term => {
+    const done = Math.min(Math.max(client.sessions.length - idx, 0), term.sessions);
+    html += '<div style="font-size:11px; color:#555; margin-bottom:2px;">' + esc(term.name) + ': ' + done + '/' + term.sessions + '回完了</div>';
+    idx += term.sessions;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderTermsList() {
+  const terms = client.terms;
+  if (!terms || terms.length === 0) return '<div class="text-sm text-muted">初期契約のみ</div>';
+  let html = '';
+  terms.forEach((term, i) => {
+    html += '<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f0f0f0;">';
+    html += '<div style="flex:1; min-width:0;">';
+    html += '<div style="font-size:13px; font-weight:500;">' + esc(term.name) + ' (' + term.sessions + '回)</div>';
+    if (term.price) html += '<div style="font-size:11px; color:#888;">&yen;' + term.price.toLocaleString() + '</div>';
+    if (term.memo) html += '<div style="font-size:11px; color:#555;">' + esc(term.memo) + '</div>';
+    html += '</div>';
+    html += '<div style="font-size:10px; color:#aaa; white-space:nowrap;">' + (term.addedAt ? term.addedAt.split('T')[0].replace(/-/g, '/') : '') + '</div>';
+    html += '</div>';
+  });
+  return html;
+}
+
+function toggleAddTerm() {
+  const form = document.getElementById('addTermForm');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+async function addTerm() {
+  const addSessions = parseInt(document.getElementById('addTermSessions').value);
+  if (!addSessions || addSessions <= 0) { alert('追加回数を入力してください'); return; }
+  const termName = document.getElementById('addTermName').value.trim();
+  const addPrice = parseInt(document.getElementById('addTermPrice').value) || 0;
+  const memo = document.getElementById('addTermMemo').value.trim();
+  await fetch(API + '/clients', {
+    method: 'PUT',
+    headers: headers(),
+    body: JSON.stringify({ id: client.id, action: 'addTerm', addSessions, termName, addPrice, memo })
+  });
+  showToast('セッションを追加しました');
+  load();
 }
 
 function toggleSheetEdit() {

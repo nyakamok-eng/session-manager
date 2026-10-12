@@ -190,6 +190,18 @@ async function handleClients(url, request, method, env) {
     if (body.sheetUrl !== undefined) data.sheetUrl = body.sheetUrl;
     if (body.expiryDate !== undefined) data.expiryDate = body.expiryDate;
 
+    if (body.action === "addTerm") {
+      if (!data.terms) {
+        data.terms = [{ name: "1期目", sessions: data.totalSessions, price: data.price, addedAt: data.createdAt || new Date().toISOString() }];
+      }
+      const termNum = data.terms.length + 1;
+      const addSessions = parseInt(body.addSessions) || 0;
+      const addPrice = parseInt(body.addPrice) || 0;
+      data.terms.push({ name: body.termName || (termNum + "期目"), sessions: addSessions, price: addPrice, addedAt: new Date().toISOString(), memo: body.memo || "" });
+      data.totalSessions += addSessions;
+      data.price += addPrice;
+    }
+
     await env.SESSION_KV.put("client:" + body.id, JSON.stringify(data));
 
     const list = await env.SESSION_KV.get("client:list", "json") || [];

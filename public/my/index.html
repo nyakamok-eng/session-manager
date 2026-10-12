@@ -158,6 +158,17 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
         </div>
       </div>
       <div class="plan-info">全${c.totalSessions}回中 ${done}回完了</div>
+      ${c.terms && c.terms.length > 1 ? (() => {
+        let th = '<div style="margin-top:8px; font-size:11px; opacity:0.85;">';
+        let si = 0;
+        c.terms.forEach(t => {
+          const td = Math.min(Math.max(done - si, 0), t.sessions);
+          th += '<div>' + esc(t.name) + ': ' + td + '/' + t.sessions + '回完了</div>';
+          si += t.sessions;
+        });
+        th += '</div>';
+        return th;
+      })() : ''}
       ${c.expiryDate ? '<div style="font-size:12px; margin-top:6px; opacity:0.85;">使用期限: ' + esc(c.expiryDate) + '</div>' : ''}
     </div>
 
