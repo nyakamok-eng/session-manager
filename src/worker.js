@@ -59,6 +59,8 @@ async function handleAPI(url, request, env) {
       res = await handleVideos(url, request, method, env);
     } else if (path === "/api/schedule") {
       res = await handleSchedule(url, request, method, env);
+    } else if (path === "/api/video-status") {
+      res = await handleVideoStatus(url, request, method, env);
     } else {
       res = Response.json({ error: "not_found" }, { status: 404 });
     }
@@ -688,6 +690,58 @@ async function logError(env, endpoint, method, error) {
     if (logs.length > 100) logs.length = 100;
     await env.SESSION_KV.put("system:errorLogs", JSON.stringify(logs));
   } catch (e) {}
+}
+
+async function handleVideoStatus(url, request, method, env) {
+  if (method === "GET") {
+    const clientToken = url.searchParams.get("token");
+    const clientId = url.searchParams.get("clientId");
+
+    if (clientToken) {
+      const id = await env.SESSION_KV.get("token:" + clientToken);
+      if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+      const statuses = await env.SESSION_KV.get("videoStatus:" + id, "json") || {};
+      return Response.json(statuses);
+    }
+
+    if (clientId) {
+      if (!(await verifyAdmin(request, env))) return Response.json({ error: "unauthorized" }, { status: 401 });
+      const statuses = await env.SESSION_KV.get("videoStatus:" + clientId, "json") || {};
+      return Response.json(statuses);
+    }
+
+    if (!(await verifyAdmin(request, env))) return Response.json({ error: "unauthorized" }, { status: 401 });
+    const list = await env.SESSION_KV.get("client:list", "json") || [];
+    const result = {};
+    for (const item of list) {
+      result[item.id] = await env.SESSION_KV.get("videoStatus:" + item.id, "json") || {};
+    }
+    return Response.json(result);
+  }
+
+  if (method === "POST") {
+    const body = await request.json();
+    const clientToken = body.token;
+    const clientId = body.clientId;
+    let id;
+
+    if (clientToken) {
+      id = await env.SESSION_KV.get("token:" + clientToken);
+      if (!id) return Response.json({ error: "not_found" }, { status: 404 });
+    } else if (clientId) {
+      if (!(await verifyAdmin(request, env))) return Response.json({ error: "unauthorized" }, { status: 401 });
+      id = clientId;
+    } else {
+      return Response.json({ error: "missing_params" }, { status: 400 });
+    }
+
+    const statuses = await env.SESSION_KV.get("videoStatus:" + id, "json") || {};
+    statuses[body.videoId] = body.status || "none";
+    await env.SESSION_KV.put("videoStatus:" + id, JSON.stringify(statuses));
+    return Response.json(statuses);
+  }
+
+  return Response.json({ error: "method_not_allowed" }, { status: 405 });
 }
 
 async function handleErrors(url, request, method, env) {

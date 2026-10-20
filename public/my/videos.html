@@ -48,6 +48,16 @@ body {
 .video-date { font-size: 11px; color: #888; margin-top: 2px; }
 .video-arrow { color: #ccc; font-size: 14px; flex-shrink: 0; }
 
+.status-select {
+  font-size: 10px; padding: 2px 6px; border-radius: 4px;
+  font-weight: 500; cursor: pointer; flex-shrink: 0;
+  -webkit-appearance: none; appearance: none; text-align: center;
+  min-width: 48px; outline: none;
+}
+.status-none { border: 1px solid #bbb; background: #f5f5f5; color: #999; }
+.status-doing { border: 1px solid #e68a00; background: #fff8e1; color: #e68a00; }
+.status-done { border: 1px solid #2d8a4e; background: #ecfdf5; color: #2d8a4e; }
+
 .empty {
   text-align: center; padding: 60px 20px;
   color: #999; font-size: 14px;
@@ -78,6 +88,8 @@ const token = params.get('t');
 
 document.getElementById('backLink').href = '/my/?t=' + encodeURIComponent(token);
 
+let videoStatuses = {};
+
 if (!token) {
   document.getElementById('videoList').innerHTML = '<div class="empty">URLが正しくありません</div>';
 } else {
@@ -99,11 +111,30 @@ async function loadVideos() {
     }
     const data = await res.json();
     const videos = data.videos || data;
+    await loadVideoStatuses();
     loadVideoMemo();
     renderVideos(videos);
   } catch (e) {
     document.getElementById('videoList').innerHTML = '<div class="empty">接続エラー</div>';
   }
+}
+
+async function loadVideoStatuses() {
+  try {
+    const res = await fetch(API + '/video-status?token=' + encodeURIComponent(token));
+    if (res.ok) videoStatuses = await res.json();
+  } catch (e) {}
+}
+
+async function updateStatus(videoId, status) {
+  try {
+    const res = await fetch(API + '/video-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, videoId, status })
+    });
+    if (res.ok) videoStatuses = await res.json();
+  } catch (e) {}
 }
 
 async function loadVideoMemo() {
@@ -152,24 +183,37 @@ function renderVideos(videos) {
         ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2d8a4e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>'
         : '<svg width="16" height="16" viewBox="0 0 24 24" fill="#cc0000"><path d="M8 5v14l11-7z"/></svg>';
       const hasUrl = v.url && v.url.trim();
-      const tag = hasUrl ? 'a' : 'div';
-      const linkAttr = hasUrl ? ' href="' + esc(v.url) + '" target="_blank"' : '';
+      const st = videoStatuses[v.id] || 'none';
+      const stClass = st === 'done' ? 'status-done' : st === 'doing' ? 'status-doing' : 'status-none';
       return `
-      <${tag} class="video-item"${linkAttr}>
-        <div class="video-icon ${iconClass}">
-          ${iconSvg}
-        </div>
-        <div class="video-meta">
-          <div class="video-title">${esc(v.title)}</div>
-          ${v.description ? '<div style="font-size:12px; color:#555; margin-top:3px; line-height:1.4;">' + esc(v.description) + '</div>' : ''}
-          <div style="font-size:11px; color:#888; margin-top:3px;">${t === 'audio' ? '音声' : t === 'work' ? 'ワーク' : '動画'}${v.duration ? ' / ' + esc(v.duration) : ''}</div>
-          ${v.memo ? '<div style="font-size:12px; color:#2d8a4e; margin-top:3px; line-height:1.4;">' + esc(v.memo) + '</div>' : ''}
-        </div>
+      <div class="video-item">
+        ${hasUrl ? '<a href="' + esc(v.url) + '" target="_blank" style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;text-decoration:none;color:inherit;">' : '<div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">'}
+          <div class="video-icon ${iconClass}">
+            ${iconSvg}
+          </div>
+          <div class="video-meta">
+            <div class="video-title">${esc(v.title)}</div>
+            ${v.description ? '<div style="font-size:12px; color:#555; margin-top:3px; line-height:1.4;">' + esc(v.description) + '</div>' : ''}
+            <div style="font-size:11px; color:#888; margin-top:3px;">${t === 'audio' ? '音声' : t === 'work' ? 'ワーク' : '動画'}${v.duration ? ' / ' + esc(v.duration) : ''}</div>
+            ${v.memo ? '<div style="font-size:12px; color:#2d8a4e; margin-top:3px; line-height:1.4;">' + esc(v.memo) + '</div>' : ''}
+          </div>
+        ${hasUrl ? '</a>' : '</div>'}
+        <select class="status-select ${stClass}" onchange="handleStatusChange(this,'${v.id}')" onclick="event.stopPropagation()">
+          <option value="none"${st === 'none' ? ' selected' : ''}>未実施</option>
+          <option value="doing"${st === 'doing' ? ' selected' : ''}>実行中</option>
+          <option value="done"${st === 'done' ? ' selected' : ''}>完了</option>
+        </select>
         ${hasUrl ? '<div class="video-arrow">&rsaquo;</div>' : ''}
-      </${tag}>
+      </div>
     `}).join('');
   });
   el.innerHTML = html;
+}
+
+async function handleStatusChange(sel, videoId) {
+  const val = sel.value;
+  sel.className = 'status-select ' + (val === 'done' ? 'status-done' : val === 'doing' ? 'status-doing' : 'status-none');
+  await updateStatus(videoId, val);
 }
 </script>
 </body>

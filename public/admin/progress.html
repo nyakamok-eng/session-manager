@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>動画・実践 進捗一覧</title>
+<link rel="stylesheet" href="/style.css">
+<style>
+.progress-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.progress-table th { position: sticky; top: 0; background: #fff; z-index: 2; }
+.progress-table th, .progress-table td { padding: 8px 10px; border-bottom: 1px solid var(--gray-200); text-align: left; }
+.progress-table th:first-child, .progress-table td:first-child { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 90px; }
+.progress-table th:first-child { z-index: 3; }
+.st-none { background: #f5f5f5; color: #999; }
+.st-doing { background: #fff8e1; color: #e68a00; }
+.st-done { background: #ecfdf5; color: #2d8a4e; }
+.st-badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; text-align: center; min-width: 40px; }
+.video-col { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.summary-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.summary-item { font-size: 12px; color: var(--gray-500); }
+.summary-item span { font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="/admin/clients.html" style="text-decoration:none; color:var(--primary); font-size:14px; font-weight:500;">&larr; 戻る</a>
+      <h1 style="font-size:16px;">動画・実践 進捗一覧</h1>
+    </div>
+  </div>
+
+  <div id="summaryArea" style="display:none; margin-bottom:8px;"></div>
+
+  <div class="card" style="overflow-x:auto; padding:0;">
+    <div id="progressArea">
+      <div class="loading" style="padding:40px; text-align:center; color:#999;">読み込み中...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const TOKEN = localStorage.getItem('admin_token');
+if (!TOKEN) location.href = '/admin/';
+
+function headers() {
+  return { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+async function load() {
+  try {
+    const [clientsRes, videosRes, statusesRes] = await Promise.all([
+      fetch(API + '/clients', { headers: headers() }),
+      fetch(API + '/videos', { headers: headers() }),
+      fetch(API + '/video-status', { headers: headers() })
+    ]);
+
+    if (clientsRes.status === 401) { location.href = '/admin/'; return; }
+
+    const clients = await clientsRes.json();
+    const videosData = await videosRes.json();
+    const allStatuses = await statusesRes.json();
+    const videos = videosData.videos || videosData;
+
+    if (!videos || videos.length === 0 || clients.length === 0) {
+      document.getElementById('progressArea').innerHTML = '<div style="padding:40px; text-align:center; color:#999;">データがありません</div>';
+      return;
+    }
+
+    const visibleVideos = (Array.isArray(videos) ? videos : []).filter(v => !v.hidden);
+
+    renderSummary(clients, visibleVideos, allStatuses);
+    renderTable(clients, visibleVideos, allStatuses);
+  } catch (e) {
+    document.getElementById('progressArea').innerHTML = '<div style="padding:40px; text-align:center; color:#999;">接続エラー</div>';
+  }
+}
+
+function renderSummary(clients, videos, allStatuses) {
+  const area = document.getElementById('summaryArea');
+  area.style.display = 'block';
+
+  let totalCells = 0, doneCount = 0, doingCount = 0, noneCount = 0;
+  for (const c of clients) {
+    const st = allStatuses[c.id] || {};
+    for (const v of videos) {
+      totalCells++;
+      const s = st[v.id] || 'none';
+      if (s === 'done') doneCount++;
+      else if (s === 'doing') doingCount++;
+      else noneCount++;
+    }
+  }
+
+  const pct = totalCells > 0 ? Math.round(doneCount / totalCells * 100) : 0;
+  area.innerHTML = `
+    <div class="summary-bar">
+      <div class="summary-item">全体完了率: <span style="color:var(--green);">${pct}%</span></div>
+      <div class="summary-item">完了: <span style="color:var(--green);">${doneCount}</span></div>
+      <div class="summary-item">実行中: <span style="color:#e68a00;">${doingCount}</span></div>
+      <div class="summary-item">未実施: <span style="color:#999;">${noneCount}</span></div>
+    </div>
+  `;
+}
+
+function renderTable(clients, videos, allStatuses) {
+  const area = document.getElementById('progressArea');
+
+  let html = '<table class="progress-table"><thead><tr><th>クライアント</th>';
+  for (const v of videos) {
+    const t = v.type || 'video';
+    const label = t === 'audio' ? '音' : t === 'work' ? 'W' : '動';
+    html += `<th class="video-col" title="${esc(v.title)}"><span style="font-size:10px; color:${t === 'audio' ? '#e65100' : t === 'work' ? '#2d8a4e' : '#cc0000'};">${label}</span> ${esc(v.title)}</th>`;
+  }
+  html += '<th style="text-align:center;">完了率</th></tr></thead><tbody>';
+
+  for (const c of clients) {
+    const st = allStatuses[c.id] || {};
+    let done = 0;
+    html += `<tr><td style="font-weight:600; font-size:13px;"><a href="/admin/client.html?id=${c.id}" style="text-decoration:none; color:var(--gray-900);">${esc(c.name)}</a></td>`;
+    for (const v of videos) {
+      const s = st[v.id] || 'none';
+      if (s === 'done') done++;
+      const cls = s === 'done' ? 'st-done' : s === 'doing' ? 'st-doing' : 'st-none';
+      const lbl = s === 'done' ? '完了' : s === 'doing' ? '実行中' : '未実施';
+      html += `<td style="text-align:center;"><span class="st-badge ${cls}">${lbl}</span></td>`;
+    }
+    const pct = videos.length > 0 ? Math.round(done / videos.length * 100) : 0;
+    const pctColor = pct === 100 ? 'var(--green)' : pct > 0 ? '#e68a00' : '#999';
+    html += `<td style="text-align:center; font-weight:600; color:${pctColor};">${pct}%</td>`;
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  area.innerHTML = html;
+}
+
+load();
+</script>
+</body>
+</html>
