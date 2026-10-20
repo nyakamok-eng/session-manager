@@ -75,9 +75,15 @@ async function load() {
     }
 
     const visibleVideos = (Array.isArray(videos) ? videos : []).filter(v => !v.hidden);
+    const passonClients = clients.filter(c => c.plan === '3か月');
 
-    renderSummary(clients, visibleVideos, allStatuses);
-    renderTable(clients, visibleVideos, allStatuses);
+    if (passonClients.length === 0) {
+      document.getElementById('progressArea').innerHTML = '<div style="padding:40px; text-align:center; color:#999;">Pass on. のクライアントがいません</div>';
+      return;
+    }
+
+    renderSummary(passonClients, visibleVideos, allStatuses);
+    renderTable(passonClients, visibleVideos, allStatuses);
   } catch (e) {
     document.getElementById('progressArea').innerHTML = '<div style="padding:40px; text-align:center; color:#999;">接続エラー</div>';
   }
