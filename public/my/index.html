@@ -455,6 +455,10 @@ function renderTimelog(data) {
             <span style="font-size:11px; color:#888;">〜</span>
             <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
             <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <div style="display:flex; flex-direction:column; gap:1px;">
+              <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
+              <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
+            </div>
             <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
           </div>
           <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
@@ -462,6 +466,10 @@ function renderTimelog(data) {
             <span style="font-size:11px; color:#888;">〜</span>
             <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
             <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <div style="display:flex; flex-direction:column; gap:1px;">
+              <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
+              <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
+            </div>
             <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
           </div>
           <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
@@ -469,6 +477,10 @@ function renderTimelog(data) {
             <span style="font-size:11px; color:#888;">〜</span>
             <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
             <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+            <div style="display:flex; flex-direction:column; gap:1px;">
+              <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
+              <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
+            </div>
             <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
           </div>
         </div>
@@ -533,9 +545,29 @@ function addTimelogSlot() {
     <span style="font-size:11px; color:#888;">〜</span>
     <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
     <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+    <div style="display:flex; flex-direction:column; gap:1px;">
+      <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
+      <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
+    </div>
     <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
   `;
   container.appendChild(row);
+}
+
+function moveSlotUp(btn) {
+  const row = btn.closest('.tl-slot-row');
+  const prev = row.previousElementSibling;
+  if (prev && prev.classList.contains('tl-slot-row')) {
+    row.parentElement.insertBefore(row, prev);
+  }
+}
+
+function moveSlotDown(btn) {
+  const row = btn.closest('.tl-slot-row');
+  const next = row.nextElementSibling;
+  if (next && next.classList.contains('tl-slot-row')) {
+    row.parentElement.insertBefore(next, row);
+  }
 }
 
 async function saveTimelog(dayNumber) {
@@ -622,6 +654,10 @@ function editTimelogEntry(dayNumber) {
           <span style="font-size:11px; color:#888;">〜</span>
           <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;" value="${slot.end}">
           <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;" value="${esc(slot.activity)}">
+          <div style="display:flex; flex-direction:column; gap:1px;">
+            <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
+            <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
+          </div>
           <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
         </div>
       `;
