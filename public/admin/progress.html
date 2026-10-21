@@ -6,19 +6,27 @@
 <title>動画・実践 進捗一覧</title>
 <link rel="stylesheet" href="/style.css">
 <style>
-.progress-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.progress-table th { position: sticky; top: 0; background: #fff; z-index: 2; }
-.progress-table th, .progress-table td { padding: 8px 10px; border-bottom: 1px solid var(--gray-200); text-align: left; }
-.progress-table th:first-child, .progress-table td:first-child { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 90px; }
-.progress-table th:first-child { z-index: 3; }
-.st-none { background: #f5f5f5; color: #999; }
-.st-doing { background: #fff8e1; color: #e68a00; }
-.st-done { background: #ecfdf5; color: #2d8a4e; }
-.st-badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; text-align: center; min-width: 40px; }
-.video-col { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .summary-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .summary-item { font-size: 12px; color: var(--gray-500); }
 .summary-item span { font-weight: 600; }
+.client-card { background: #fff; border-radius: var(--radius); border: 1px solid var(--gray-200); margin-bottom: 12px; overflow: hidden; }
+.client-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--gray-200); cursor: pointer; }
+.client-header:active { background: var(--gray-50); }
+.client-name-area { font-weight: 600; font-size: 14px; }
+.client-pct { font-size: 13px; font-weight: 600; }
+.client-body { display: none; }
+.client-body.open { display: block; }
+.section-label { font-size: 12px; font-weight: 600; color: var(--green); padding: 8px 16px 4px; border-bottom: 1px solid #d4edda; }
+.video-row { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--gray-100); font-size: 13px; }
+.video-row:last-child { border-bottom: none; }
+.v-icon { font-size: 10px; font-weight: 600; width: 18px; text-align: center; flex-shrink: 0; }
+.v-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 4px; text-align: center; flex-shrink: 0; }
+.st-none { background: #f5f5f5; color: #999; }
+.st-doing { background: #fff8e1; color: #e68a00; }
+.st-done { background: #ecfdf5; color: #2d8a4e; }
+.progress-bar-bg { width: 60px; height: 6px; background: var(--gray-200); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+.progress-bar-fill { height: 100%; border-radius: 3px; }
 </style>
 </head>
 <body>
@@ -32,10 +40,8 @@
 
   <div id="summaryArea" style="display:none; margin-bottom:8px;"></div>
 
-  <div class="card" style="overflow-x:auto; padding:0;">
-    <div id="progressArea">
-      <div class="loading" style="padding:40px; text-align:center; color:#999;">読み込み中...</div>
-    </div>
+  <div id="progressArea">
+    <div class="loading" style="padding:40px; text-align:center; color:#999;">読み込み中...</div>
   </div>
 </div>
 
@@ -83,7 +89,7 @@ async function load() {
     }
 
     renderSummary(passonClients, visibleVideos, allStatuses);
-    renderTable(passonClients, visibleVideos, allStatuses);
+    renderCards(passonClients, visibleVideos, allStatuses);
   } catch (e) {
     document.getElementById('progressArea').innerHTML = '<div style="padding:40px; text-align:center; color:#999;">接続エラー</div>';
   }
@@ -116,36 +122,66 @@ function renderSummary(clients, videos, allStatuses) {
   `;
 }
 
-function renderTable(clients, videos, allStatuses) {
+function renderCards(clients, videos, allStatuses) {
   const area = document.getElementById('progressArea');
 
-  let html = '<table class="progress-table"><thead><tr><th>クライアント</th>';
-  for (const v of videos) {
-    const t = v.type || 'video';
-    const label = t === 'audio' ? '音' : t === 'work' ? 'W' : '動';
-    html += `<th class="video-col" title="${esc(v.title)}"><span style="font-size:10px; color:${t === 'audio' ? '#e65100' : t === 'work' ? '#2d8a4e' : '#cc0000'};">${label}</span> ${esc(v.title)}</th>`;
-  }
-  html += '<th style="text-align:center;">完了率</th></tr></thead><tbody>';
+  const grouped = {};
+  const sectionOrder = [];
+  videos.forEach(v => {
+    const sec = v.section || '';
+    if (!grouped[sec]) { grouped[sec] = []; sectionOrder.push(sec); }
+    grouped[sec].push(v);
+  });
 
+  let html = '';
   for (const c of clients) {
     const st = allStatuses[c.id] || {};
     let done = 0;
-    html += `<tr><td style="font-weight:600; font-size:13px;"><a href="/admin/client.html?id=${c.id}" style="text-decoration:none; color:var(--gray-900);">${esc(c.name)}</a></td>`;
-    for (const v of videos) {
-      const s = st[v.id] || 'none';
-      if (s === 'done') done++;
-      const cls = s === 'done' ? 'st-done' : s === 'doing' ? 'st-doing' : 'st-none';
-      const lbl = s === 'done' ? '完了' : s === 'doing' ? '実行中' : '未実施';
-      html += `<td style="text-align:center;"><span class="st-badge ${cls}">${lbl}</span></td>`;
-    }
+    for (const v of videos) { if ((st[v.id] || 'none') === 'done') done++; }
     const pct = videos.length > 0 ? Math.round(done / videos.length * 100) : 0;
     const pctColor = pct === 100 ? 'var(--green)' : pct > 0 ? '#e68a00' : '#999';
-    html += `<td style="text-align:center; font-weight:600; color:${pctColor};">${pct}%</td>`;
-    html += '</tr>';
+    const barColor = pct === 100 ? 'var(--green)' : pct > 0 ? '#e68a00' : 'var(--gray-300)';
+
+    html += `<div class="client-card">`;
+    html += `<div class="client-header" onclick="toggleClient(this)">`;
+    html += `<div style="display:flex; align-items:center; gap:10px;">`;
+    html += `<div class="client-name-area"><a href="/admin/client.html?id=${c.id}" style="text-decoration:none; color:inherit;" onclick="event.stopPropagation();">${esc(c.name)}</a></div>`;
+    html += `<div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%; background:${barColor};"></div></div>`;
+    html += `</div>`;
+    html += `<div class="client-pct" style="color:${pctColor};">${pct}% <span style="font-size:11px; color:var(--gray-400);">(${done}/${videos.length})</span></div>`;
+    html += `</div>`;
+    html += `<div class="client-body">`;
+
+    for (const sec of sectionOrder) {
+      const list = grouped[sec];
+      if (!list || list.length === 0) continue;
+      if (sec) {
+        html += `<div class="section-label">${esc(sec)}</div>`;
+      }
+      for (const v of list) {
+        const s = st[v.id] || 'none';
+        const cls = s === 'done' ? 'st-done' : s === 'doing' ? 'st-doing' : 'st-none';
+        const lbl = s === 'done' ? '完了' : s === 'doing' ? '実行中' : '未実施';
+        const t = v.type || 'video';
+        const iconLabel = t === 'audio' ? '音' : t === 'work' ? 'W' : '動';
+        const iconColor = t === 'audio' ? '#e65100' : t === 'work' ? '#2d8a4e' : '#cc0000';
+        html += `<div class="video-row">`;
+        html += `<span class="v-icon" style="color:${iconColor};">${iconLabel}</span>`;
+        html += `<span class="v-title">${esc(v.title)}</span>`;
+        html += `<span class="st-badge ${cls}">${lbl}</span>`;
+        html += `</div>`;
+      }
+    }
+
+    html += `</div></div>`;
   }
 
-  html += '</tbody></table>';
   area.innerHTML = html;
+}
+
+function toggleClient(el) {
+  const body = el.nextElementSibling;
+  body.classList.toggle('open');
 }
 
 load();
