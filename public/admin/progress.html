@@ -81,7 +81,7 @@ async function load() {
     }
 
     const visibleVideos = (Array.isArray(videos) ? videos : []).filter(v => !v.hidden);
-    const passonClients = clients.filter(c => c.plan === '3か月');
+    const passonClients = clients.filter(c => c.plan === '3か月' || c.plan === '4か月');
 
     if (passonClients.length === 0) {
       document.getElementById('progressArea').innerHTML = '<div style="padding:40px; text-align:center; color:#999;">Pass on. のクライアントがいません</div>';
