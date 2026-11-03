@@ -175,8 +175,14 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
     <div style="padding: 0 4px;">
   `;
 
-  const schedItems = scheduleData ? (scheduleData.items || scheduleData) : [];
+  const schedItemsAll = scheduleData ? (scheduleData.items || scheduleData) : [];
   const schedZoomUrl = scheduleData ? (scheduleData.zoomUrl || '') : '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const schedItems = schedItemsAll.filter(item => {
+    if (!item.date) return true;
+    const d = new Date(item.date);
+    return isNaN(d.getTime()) || d >= today;
+  });
   if (schedItems.length > 0) {
     html += '<div style="background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">';
     html += '<div style="font-size:14px; font-weight:700; color:#2d8a4e; margin-bottom:12px;">今後の日程</div>';
