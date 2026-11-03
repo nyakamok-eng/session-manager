@@ -182,6 +182,10 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
     if (!item.date) return true;
     const d = new Date(item.date);
     return isNaN(d.getTime()) || d >= today;
+  }).sort((a, b) => {
+    const da = a.date ? new Date(a.date) : new Date('9999-12-31');
+    const db = b.date ? new Date(b.date) : new Date('9999-12-31');
+    return da - db;
   });
   if (schedItems.length > 0) {
     html += '<div style="background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">';
