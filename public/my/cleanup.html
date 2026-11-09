@@ -167,7 +167,7 @@ function render(data, settings) {
   if (settings.desc) {
     const descDiv = document.getElementById('heroTitle');
     descDiv.insertAdjacentHTML('afterend', '<div style="font-size:11px; opacity:0.85; margin-top:4px; line-height:1.5; white-space:pre-wrap;">' + esc(settings.desc) + '</div>');
-    descDiv.nextElementSibling.insertAdjacentHTML('afterend', '<div style="background:rgba(255,251,235,0.9); border-radius:6px; padding:8px 12px; margin-top:10px; text-align:left;"><div style="font-size:11px; color:#92400e; line-height:1.5;">⚠️ 動画コンテンツ ステップ5「お片付け講座の視聴」まで進んで<br>からご依頼ください。</div></div>');
+    descDiv.nextElementSibling.insertAdjacentHTML('afterend', '<div style="background:rgba(255,251,235,0.9); border-radius:6px; padding:8px 12px; margin-top:10px; text-align:left;"><div style="font-size:11px; color:#92400e; line-height:1.5;">⚠️ 動画コンテンツ ステップ5「お片付け講座の視聴」まで<br>進んでからご依頼ください。</div></div>');
   }
 
   document.getElementById('heroNum').innerHTML = remaining + '<span>回</span>';
