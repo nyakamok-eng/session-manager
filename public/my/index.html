@@ -262,6 +262,22 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
       <h2 style="font-size:15px; font-weight:700; margin-bottom:12px;">セッション履歴</h2>
   `;
 
+  if (c.initialSession && c.initialSession.date) {
+    const ini = c.initialSession;
+    html += `
+      <div class="session-card" style="border-left:3px solid #d97706;">
+        <div>
+          <div class="session-label" style="color:#d97706;">初回</div>
+          <div style="font-size:13px; color:#666; margin-top:2px;">${esc(ini.date)}</div>
+        </div>
+        ${ini.fileUrl
+          ? '<a href="' + ini.fileUrl + '" target="_blank" class="file-link">資料を見る</a>'
+          : ''
+        }
+      </div>
+    `;
+  }
+
   for (let i = 0; i < c.totalSessions; i++) {
     const s = c.sessions[i];
     if (s) {

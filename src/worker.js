@@ -192,6 +192,14 @@ async function handleClients(url, request, method, env) {
     if (body.sheetUrl !== undefined) data.sheetUrl = body.sheetUrl;
     if (body.expiryDate !== undefined) data.expiryDate = body.expiryDate;
 
+    if (body.action === "setInitialSession") {
+      data.initialSession = {
+        date: body.date || "",
+        fileUrl: body.fileUrl || null,
+        fileName: body.fileName || null
+      };
+    }
+
     if (body.action === "addTerm") {
       if (!data.terms) {
         data.terms = [{ name: "1期目", sessions: data.totalSessions, price: data.price, addedAt: data.createdAt || new Date().toISOString() }];
@@ -584,13 +592,34 @@ async function handleUpload(request, env) {
   const formData = await request.formData();
   const file = formData.get("file");
   const clientId = formData.get("clientId");
+  const uploadType = formData.get("type");
   const sessionNumber = parseInt(formData.get("sessionNumber"));
 
-  if (!file || !clientId || !sessionNumber) {
+  if (!file || !clientId) {
     return Response.json({ error: "missing_fields" }, { status: 400 });
   }
 
   const arrayBuffer = await file.arrayBuffer();
+
+  if (uploadType === "initial") {
+    const fileKey = "file:" + clientId + ":initial";
+    await env.SESSION_KV.put(fileKey, arrayBuffer, {
+      metadata: { contentType: file.type, fileName: file.name }
+    });
+    const data = await env.SESSION_KV.get("client:" + clientId, "json");
+    if (data) {
+      if (!data.initialSession) data.initialSession = {};
+      data.initialSession.fileUrl = "/api/file?key=" + encodeURIComponent(fileKey);
+      data.initialSession.fileName = file.name;
+      await env.SESSION_KV.put("client:" + clientId, JSON.stringify(data));
+    }
+    return Response.json({ ok: true });
+  }
+
+  if (!sessionNumber) {
+    return Response.json({ error: "missing_fields" }, { status: 400 });
+  }
+
   const fileKey = "file:" + clientId + ":" + sessionNumber;
 
   await env.SESSION_KV.put(fileKey, arrayBuffer, {
