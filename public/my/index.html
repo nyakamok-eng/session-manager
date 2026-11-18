@@ -229,9 +229,21 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
     `;
   }
 
-  // 3. セッション履歴
+  // 3. セッション履歴（折りたたみ）
+  const doneCount = c.sessions.filter(s => s).length + (c.initialSession && c.initialSession.date ? 1 : 0);
   html += `
-      <h2 style="font-size:15px; font-weight:700; margin-bottom:12px;">セッション履歴</h2>
+    <div style="background:#fff; border-radius:12px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); overflow:hidden;">
+      <div onclick="toggleSessionHistory()" style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; user-select:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:20px;">&#128203;</div>
+          <div>
+            <div style="font-size:14px; font-weight:600; color:#1a2e23;">セッション履歴</div>
+            <div style="font-size:11px; color:#888; margin-top:2px;">${doneCount}回完了 / 全${c.totalSessions}回</div>
+          </div>
+        </div>
+        <div id="session-history-arrow" style="font-size:12px; color:#888; transition:transform 0.2s;">&#9660;</div>
+      </div>
+      <div id="session-history-body" style="display:none; padding:0 16px 16px;">
   `;
 
   if (c.initialSession && c.initialSession.date) {
@@ -276,6 +288,11 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
       `;
     }
   }
+
+  html += `
+      </div>
+    </div>
+  `;
 
   // 4. あなたの資料
   if (c.sheetUrl) {
@@ -592,6 +609,18 @@ function addTimelogSlot() {
     <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
   `;
   container.appendChild(row);
+}
+
+function toggleSessionHistory() {
+  const body = document.getElementById('session-history-body');
+  const arrow = document.getElementById('session-history-arrow');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    arrow.style.transform = 'rotate(180deg)';
+  } else {
+    body.style.display = 'none';
+    arrow.style.transform = 'rotate(0deg)';
+  }
 }
 
 function moveSlotUp(btn) {
