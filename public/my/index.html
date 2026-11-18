@@ -350,11 +350,20 @@ function renderTimelog(data) {
   const nextDay = recorded.length + 1;
 
   let html = `
-    <div style="background:#fff; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+    <div style="background:#fff; border-radius:12px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); overflow:hidden;">
+      <div onclick="toggleTimelog()" style="display:flex; align-items:center; justify-content:space-between; padding:16px; cursor:pointer; user-select:none;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-size:20px;">&#128337;</div>
+          <div>
+            <div style="font-size:14px; font-weight:600; color:#1a2e23;">タイムログ</div>
+            <div style="font-size:11px; color:#888; margin-top:2px;">${recorded.length} / ${maxDays}日 記録済 ・ 最低7回はとりましょう</div>
+          </div>
+        </div>
+        <div id="timelog-arrow" style="font-size:12px; color:#888; transition:transform 0.2s;">&#9660;</div>
+      </div>
+      <div id="timelog-body" style="display:none; padding:0 16px 16px;">
       <div style="text-align:center; margin-bottom:14px;">
-        <div style="font-size:15px; font-weight:700; color:#2d8a4e;">タイムログ</div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">最低7回はとりましょう</div>
-        <div style="display:flex; justify-content:center; gap:5px; margin-top:10px; flex-wrap:wrap;">
+        <div style="display:flex; justify-content:center; gap:5px; flex-wrap:wrap;">
   `;
 
   for (let i = 1; i <= maxDays; i++) {
@@ -368,7 +377,6 @@ function renderTimelog(data) {
 
   html += `
         </div>
-        <div style="font-size:10px; color:#888; margin-top:6px;">${recorded.length} / ${maxDays}日 記録済</div>
       </div>
   `;
 
@@ -579,8 +587,20 @@ function renderTimelog(data) {
     `;
   }
 
-  html += '</div>';
+  html += '</div></div>';
   area.innerHTML = html;
+}
+
+function toggleTimelog() {
+  const body = document.getElementById('timelog-body');
+  const arrow = document.getElementById('timelog-arrow');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    arrow.style.transform = 'rotate(180deg)';
+  } else {
+    body.style.display = 'none';
+    arrow.style.transform = 'rotate(0deg)';
+  }
 }
 
 async function addOneDay() {
