@@ -205,6 +205,18 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
     html += '</div>';
   }
 
+  // 1. 音声配信
+  if (audioLink && audioLink.url) {
+    html += `
+      <a href="${esc(audioLink.url)}" target="_blank" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
+        <div style="font-size:24px; margin-bottom:6px;">&#127911;</div>
+        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">${esc(audioLink.title || '音声配信')}</div>
+        <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
+      </a>
+    `;
+  }
+
+  // 2. 動画
   if (videoData && videoData.length > 0) {
     html += `
       <a href="/my/videos.html?t=${encodeURIComponent(token)}" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
@@ -217,47 +229,7 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
     `;
   }
 
-  if (patternData !== null) {
-    html += '<div id="pattern-area"></div>';
-  }
-
-  html += '<div id="timelog-area"></div>';
-
-  if (audioLink && audioLink.url) {
-    html += `
-      <a href="${esc(audioLink.url)}" target="_blank" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
-        <div style="font-size:24px; margin-bottom:6px;">&#127911;</div>
-        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">${esc(audioLink.title || '音声配信')}</div>
-        <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
-      </a>
-    `;
-  }
-
-  if (c.sheetUrl) {
-    html += `
-      <a href="${esc(c.sheetUrl)}" target="_blank" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
-        <div style="font-size:24px; margin-bottom:6px;">&#128203;</div>
-        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">あなたの資料を見る</div>
-        <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
-      </a>
-    `;
-  }
-
-  html += '<div id="archive-area"></div>';
-
-  if (cleanupAvailable) {
-    html += `
-      <a href="/my/cleanup.html?t=${encodeURIComponent(token)}" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center; border:2px solid #2d8a4e;">
-        <div style="font-size:24px; margin-bottom:6px;">&#128466;</div>
-        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">お片付けSession</div>
-        <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
-        <div style="background:#fffbeb; border-radius:6px; padding:8px 12px; margin-top:10px; text-align:left;">
-          <div style="font-size:11px; color:#92400e; line-height:1.5;">⚠️ 動画コンテンツ ステップ5「お片付け講座の視聴」まで<br>進んでからご依頼ください。</div>
-        </div>
-      </a>
-    `;
-  }
-
+  // 3. セッション履歴
   html += `
       <h2 style="font-size:15px; font-weight:700; margin-bottom:12px;">セッション履歴</h2>
   `;
@@ -304,6 +276,42 @@ function render(c, audioLink, cleanupAvailable, patternData, videoData, schedule
       `;
     }
   }
+
+  // 4. あなたの資料
+  if (c.sheetUrl) {
+    html += `
+      <a href="${esc(c.sheetUrl)}" target="_blank" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center;">
+        <div style="font-size:24px; margin-bottom:6px;">&#128203;</div>
+        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">あなたの資料を見る</div>
+        <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
+      </a>
+    `;
+  }
+
+  // 5. 行動のパターン化
+  if (patternData !== null) {
+    html += '<div id="pattern-area"></div>';
+  }
+
+  // 6. タイムログ
+  html += '<div id="timelog-area"></div>';
+
+  // 7. お片付けSession
+  if (cleanupAvailable) {
+    html += `
+      <a href="/my/cleanup.html?t=${encodeURIComponent(token)}" style="display:block; background:#fff; border-radius:12px; padding:16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); text-decoration:none; text-align:center; border:2px solid #2d8a4e;">
+        <div style="font-size:24px; margin-bottom:6px;">&#128466;</div>
+        <div style="font-size:14px; font-weight:600; color:#2d8a4e;">お片付けSession</div>
+        <div style="font-size:11px; color:#888; margin-top:4px;">タップして開く</div>
+        <div style="background:#fffbeb; border-radius:6px; padding:8px 12px; margin-top:10px; text-align:left;">
+          <div style="font-size:11px; color:#92400e; line-height:1.5;">⚠️ 動画コンテンツ ステップ5「お片付け講座の視聴」まで<br>進んでからご依頼ください。</div>
+        </div>
+      </a>
+    `;
+  }
+
+  // 8. シェア会アーカイブ
+  html += '<div id="archive-area"></div>';
 
   html += `
     </div>
