@@ -413,7 +413,8 @@ async function handleTimelog(url, request, method, env) {
         dayNumber: body.dayNumber,
         date: body.date,
         slots: body.slots || [],
-        memo: body.memo || ""
+        memo: body.memo || "",
+        pasteText: body.pasteText || ""
       };
 
       const existingIdx = data.entries.findIndex(e => e.dayNumber === body.dayNumber);

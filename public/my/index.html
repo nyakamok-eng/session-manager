@@ -486,7 +486,9 @@ function renderTimelog(data) {
         </div>
         <div class="tl-body" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid #f0f0f0;">
     `;
-    if (entry.slots) {
+    if (entry.pasteText) {
+      html += '<div style="font-size:12px; color:#4a5568; white-space:pre-wrap; line-height:1.7;">' + esc(entry.pasteText) + '</div>';
+    } else if (entry.slots) {
       for (const slot of entry.slots) {
         html += '<div style="font-size:12px; padding:2px 0; color:#4a5568;"><span style="color:#888;">' + esc(slot.start) + ' - ' + esc(slot.end) + '</span> ' + esc(slot.activity) + '</div>';
       }
@@ -514,42 +516,51 @@ function renderTimelog(data) {
           <div style="font-size:11px; color:#666; margin-bottom:4px; font-weight:500;">記録する日付</div>
           <input type="date" id="tl-date" style="width:100%; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px;" value="${new Date().toISOString().split('T')[0]}">
         </div>
-        <div id="tl-slots">
-          <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
-            <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <span style="font-size:11px; color:#888;">〜</span>
-            <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <div style="display:flex; flex-direction:column; gap:1px;">
-              <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
-              <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
-            </div>
-            <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
-          </div>
-          <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
-            <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <span style="font-size:11px; color:#888;">〜</span>
-            <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <div style="display:flex; flex-direction:column; gap:1px;">
-              <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
-              <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
-            </div>
-            <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
-          </div>
-          <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
-            <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <span style="font-size:11px; color:#888;">〜</span>
-            <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
-            <div style="display:flex; flex-direction:column; gap:1px;">
-              <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
-              <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
-            </div>
-            <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
-          </div>
+        <div style="display:flex; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; margin-bottom:12px;">
+          <div id="tl-tab-input" onclick="switchTlMode('input')" style="flex:1; padding:8px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; background:#2d8a4e; color:#fff;">打ち込み</div>
+          <div id="tl-tab-paste" onclick="switchTlMode('paste')" style="flex:1; padding:8px; text-align:center; font-size:12px; font-weight:600; cursor:pointer; background:#fff; color:#888;">コピペする</div>
         </div>
-        <button onclick="addTimelogSlot()" style="width:100%; padding:7px; border:1px dashed #cbd5e0; border-radius:6px; background:transparent; font-size:12px; color:#888; cursor:pointer; margin-bottom:10px;">+ 行を追加</button>
+        <div id="tl-mode-input">
+          <div id="tl-slots">
+            <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+              <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <span style="font-size:11px; color:#888;">〜</span>
+              <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <div style="display:flex; flex-direction:column; gap:1px;">
+                <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
+                <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
+              </div>
+              <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
+            </div>
+            <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+              <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <span style="font-size:11px; color:#888;">〜</span>
+              <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <div style="display:flex; flex-direction:column; gap:1px;">
+                <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
+                <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
+              </div>
+              <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
+            </div>
+            <div class="tl-slot-row" style="display:flex; align-items:center; gap:4px; margin-bottom:6px;">
+              <input type="time" class="tl-start" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <span style="font-size:11px; color:#888;">〜</span>
+              <input type="time" class="tl-end" style="width:80px; padding:6px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <input type="text" class="tl-activity" placeholder="やったこと" style="flex:1; padding:6px 8px; border:1px solid #e2e8f0; border-radius:4px; font-size:12px;">
+              <div style="display:flex; flex-direction:column; gap:1px;">
+                <button onclick="moveSlotUp(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9650;</button>
+                <button onclick="moveSlotDown(this)" style="width:20px; height:14px; border:none; background:transparent; color:#aaa; font-size:10px; cursor:pointer; padding:0; line-height:1;">&#9660;</button>
+              </div>
+              <button onclick="this.parentElement.remove()" style="width:24px; height:24px; border:none; background:transparent; color:#aaa; font-size:14px; cursor:pointer;">&#10005;</button>
+            </div>
+          </div>
+          <button onclick="addTimelogSlot()" style="width:100%; padding:7px; border:1px dashed #cbd5e0; border-radius:6px; background:transparent; font-size:12px; color:#888; cursor:pointer; margin-bottom:10px;">+ 行を追加</button>
+        </div>
+        <div id="tl-mode-paste" style="display:none;">
+          <textarea id="tl-paste-text" placeholder="1日のスケジュールをそのまま貼り付けてください&#10;&#10;例:&#10;5:30-6:15 息子の朝の注入, 洗い物&#10;6:15-6:45 放デイの準備&#10;6:45-7:00 ゴミ出し準備と洗濯回し" style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; min-height:180px; resize:vertical; line-height:1.7; margin-bottom:10px;"></textarea>
+        </div>
         <div style="margin-bottom:10px;">
           <div style="font-size:11px; color:#666; margin-bottom:4px; font-weight:500;">今日の気づき</div>
           <textarea id="tl-memo" placeholder="例：午前中は集中できた、移動時間が意外と長い" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:13px; min-height:50px; resize:vertical;"></textarea>
@@ -589,6 +600,25 @@ function renderTimelog(data) {
 
   html += '</div></div>';
   area.innerHTML = html;
+}
+
+let tlMode = 'input';
+
+function switchTlMode(mode) {
+  tlMode = mode;
+  const tabInput = document.getElementById('tl-tab-input');
+  const tabPaste = document.getElementById('tl-tab-paste');
+  const modeInput = document.getElementById('tl-mode-input');
+  const modePaste = document.getElementById('tl-mode-paste');
+  if (mode === 'input') {
+    tabInput.style.background = '#2d8a4e'; tabInput.style.color = '#fff';
+    tabPaste.style.background = '#fff'; tabPaste.style.color = '#888';
+    modeInput.style.display = 'block'; modePaste.style.display = 'none';
+  } else {
+    tabPaste.style.background = '#2d8a4e'; tabPaste.style.color = '#fff';
+    tabInput.style.background = '#fff'; tabInput.style.color = '#888';
+    modeInput.style.display = 'none'; modePaste.style.display = 'block';
+  }
 }
 
 function toggleTimelog() {
@@ -663,18 +693,25 @@ async function saveTimelog(dayNumber) {
   const date = document.getElementById('tl-date').value;
   if (!date) { alert('日付を選択してください'); return; }
 
-  const rows = document.querySelectorAll('.tl-slot-row');
-  const slots = [];
-  rows.forEach(row => {
-    const start = row.querySelector('.tl-start').value;
-    const end = row.querySelector('.tl-end').value;
-    const activity = row.querySelector('.tl-activity').value.trim();
-    if (start && activity) {
-      slots.push({ start, end, activity });
-    }
-  });
+  let slots = [];
+  let pasteText = '';
 
-  if (slots.length === 0) { alert('少なくとも1つの時間帯を入力してください'); return; }
+  if (tlMode === 'paste') {
+    pasteText = (document.getElementById('tl-paste-text').value || '').trim();
+    if (!pasteText) { alert('テキストを貼り付けてください'); return; }
+    slots = [{ start: '', end: '', activity: pasteText }];
+  } else {
+    const rows = document.querySelectorAll('.tl-slot-row');
+    rows.forEach(row => {
+      const start = row.querySelector('.tl-start').value;
+      const end = row.querySelector('.tl-end').value;
+      const activity = row.querySelector('.tl-activity').value.trim();
+      if (start && activity) {
+        slots.push({ start, end, activity });
+      }
+    });
+    if (slots.length === 0) { alert('少なくとも1つの時間帯を入力してください'); return; }
+  }
 
   const memo = document.getElementById('tl-memo').value.trim();
 
@@ -682,17 +719,20 @@ async function saveTimelog(dayNumber) {
   const days = ['日','月','火','水','木','金','土'];
   const formatted = (dateObj.getMonth()+1) + '/' + dateObj.getDate() + '(' + days[dateObj.getDay()] + ')';
 
+  const body = {
+    action: 'save',
+    token: token,
+    dayNumber: dayNumber,
+    date: formatted,
+    slots: slots,
+    memo: memo
+  };
+  if (pasteText) body.pasteText = pasteText;
+
   await fetch(API + '/timelog', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      action: 'save',
-      token: token,
-      dayNumber: dayNumber,
-      date: formatted,
-      slots: slots,
-      memo: memo
-    })
+    body: JSON.stringify(body)
   });
 
   loadMyPage();
